@@ -16,7 +16,7 @@ Key capabilities:
 - **Variable Payments** — override the learned amount for credit cards or irregular bills
 - **Scenario Modeling** — add hypothetical transfers or expenses to see their impact
 - **AI Insights** (optional) — seasonal patterns, predicted expenses, transfer recommendations
-- **Calendar Integration** (optional) — overlay Google Calendar events on the forecast
+- **Calendar Integration** (optional) — overlay external Calendar events on the forecast
 - **Dark mode**
 
 ---
