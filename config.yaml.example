@@ -1,0 +1,31 @@
+# Copy this file to config.yaml and fill in your values.
+# See README.md for setup instructions.
+
+ai:
+  enabled: false
+  history_months: 13        # months of transaction history to fetch (13 = full year + buffer)
+  insights_max_age_hours: 26 # hours before insights are marked "stale" (26 = daily with buffer)
+  provider: anthropic        # anthropic | openai | google
+  model: claude-sonnet-4-5  # model name for the selected provider (e.g. gpt-4o, gemini-2.0-flash)
+
+app:
+  debug: false
+  port: 5002
+
+calendar:
+  enabled: false
+  # Optional: ICS feed URL from Google Calendar, iCloud, or Proton Calendar.
+  # See Settings → Calendar Integration for instructions on finding this URL.
+  ics_url: ''
+  service: google           # google | icloud | proton | other
+
+forecast:
+  buffer_threshold: 1500.0  # warn when balance drops below this amount ($)
+  exclude_recurring: []     # recurring item names to drop (e.g. credit-card-side duplicates)
+  horizon_days: 45          # days to project forward
+
+monarch:
+  # Your primary bill-paying account ID from Monarch.
+  # Find it in Settings → Monarch Connection → click "Connect to Monarch".
+  checking_account_id: ''
+  checking_account_name: ''

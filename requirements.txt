@@ -1,0 +1,9 @@
+flask
+playwright
+icalendar
+requests
+python-dotenv
+pyyaml
+anthropic
+openai
+google-genai

@@ -1,0 +1,26 @@
+# Sensitive / session data
+browser_state.json
+config.yaml
+monarch_accounts_cache.json
+
+# User-specific runtime files
+user_context.md
+insights.json
+
+# Dev/testing scripts
+reset-for-testing.sh
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment
+.env
+
+# macOS
+.DS_Store
+
+# Server PID and log files
+.server*.pid
+.server*.log

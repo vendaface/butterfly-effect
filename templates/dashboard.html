@@ -1,0 +1,1996 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Account Balance Forecast for Monarch Money</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <script>(function(){var t=localStorage.getItem('theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    /* ── Theme variables ────────────────────────────────────────────────── */
+    :root {
+      --bg: #e8e8ed;
+      --surface: #f2f2f7;
+      --surface-2: #e8e8ed;
+      --surface-3: #ececf0;
+      --border: #d4d4da;
+      --border-light: #e0e0e8;
+      --border-input: #c8c8ce;
+      --text: #1d1d1f;
+      --text-secondary: #6e6e73;
+      --text-tertiary: #aeaeb2;
+      --text-mid: #3a3a3c;
+      --header-bg: #f2f2f7;
+      --overlay-bg: rgba(242,242,247,0.94);
+      --error-bg: #fff1f0;
+      --error-border: #ffccc7;
+      --error-text: #cf1322;
+      --row-alert-bg: #fff1f0;
+      --ai-transfer-bg: #fff8f0;
+      --ai-transfer-border: #ffd5a0;
+      --ai-surplus-bg: #f0fdf4;
+      --ai-surplus-border: #bbf7d0;
+      --ai-flag-bg: #fffbeb;
+      --ai-flag-border: #fde68a;
+    }
+    [data-theme="dark"] {
+      --bg: #000000;
+      --surface: #1c1c1e;
+      --surface-2: #2c2c2e;
+      --surface-3: #1c1c1e;
+      --border: #3a3a3c;
+      --border-light: #2c2c2e;
+      --border-input: #48484a;
+      --text: #f5f5f7;
+      --text-secondary: #aeaeb2;
+      --text-tertiary: #636366;
+      --text-mid: #d1d1d6;
+      --header-bg: #1c1c1e;
+      --overlay-bg: rgba(0,0,0,0.85);
+      --error-bg: #2d0000;
+      --error-border: #5c1010;
+      --error-text: #ff6b6b;
+      --row-alert-bg: #2d0a0a;
+      --ai-transfer-bg: #2d1500;
+      --ai-transfer-border: #5c3000;
+      --ai-surplus-bg: #001800;
+      --ai-surplus-border: #0a4500;
+      --ai-flag-bg: #2d2200;
+      --ai-flag-border: #5c4500;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--header-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header h1 { font-size: 1.25rem; font-weight: 600; }
+    .meta { font-size: 0.8rem; color: var(--text-secondary); }
+
+    .refresh-btn {
+      background: #0071e3;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 18px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .refresh-btn:hover { background: #0077ed; }
+
+    /* Split button */
+    .split-btn-wrap { position: relative; display: inline-flex; align-items: stretch; }
+    .split-main { border-radius: 8px 0 0 8px !important; padding-right: 12px !important; }
+    .split-arrow {
+      background: #0071e3; color: #fff; border: none;
+      border-left: 1px solid rgba(255,255,255,0.25);
+      border-radius: 0 8px 8px 0;
+      padding: 0 10px; cursor: pointer; font-size: 0.75rem; line-height: 1;
+    }
+    .split-arrow:hover { background: #0077ed; }
+    .split-menu {
+      position: absolute; top: calc(100% + 4px); right: 0;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+      min-width: 190px; z-index: 100; overflow: hidden;
+    }
+    .split-menu button {
+      display: block; width: 100%; text-align: left;
+      background: none; border: none; padding: 10px 16px;
+      font-size: 0.875rem; cursor: pointer; color: var(--text);
+    }
+    .split-menu button:hover { background: var(--surface-2); }
+    .split-menu-divider { border: none; border-top: 1px solid var(--border-light); margin: 0; }
+
+    /* Loading overlay */
+    #refreshOverlay {
+      display: none; position: fixed; inset: 0;
+      background: var(--overlay-bg); z-index: 500;
+      flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+    }
+    .refresh-spinner {
+      width: 40px; height: 40px;
+      border: 3px solid var(--border); border-top-color: #0071e3;
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #refreshOverlay p { font-size: 0.95rem; color: var(--text-mid); font-weight: 500; margin: 0; }
+    #refreshOverlay small { font-size: 0.8rem; color: var(--text-tertiary); }
+
+    /* AI panel pulse while analysis is running */
+    .ai-panel.running { animation: ai-pulse 2s ease-in-out infinite; }
+    @keyframes ai-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(0,113,227,0); }
+      50% { box-shadow: 0 0 0 4px rgba(0,113,227,0.18); }
+    }
+    .settings-link {
+      background: none;
+      color: var(--text-secondary);
+      border: 1px solid var(--border-input);
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .settings-link:hover { background: var(--surface-2); color: var(--text); }
+    [data-theme="dark"] .settings-link { color: var(--text-mid); border-color: var(--border); }
+
+    main { max-width: 1100px; margin: 0 auto; padding: 28px 24px; }
+
+    .error-box {
+      background: var(--error-bg);
+      border: 1px solid var(--error-border);
+      border-radius: 10px;
+      padding: 20px 24px;
+      color: var(--error-text);
+      font-size: 0.9rem;
+      margin-bottom: 24px;
+    }
+    .error-box h2 { font-size: 1rem; margin-bottom: 6px; }
+
+    /* Summary cards */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .card {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 20px 22px;
+      border: 1px solid var(--border);
+    }
+    .card .label { font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
+    .card .value { font-size: 1.6rem; font-weight: 600; }
+    .card .value.ok { color: #34c759; }
+    .card .value.warn { color: #ff9500; }
+    .card .value.danger { color: #ff3b30; }
+
+    /* Chart */
+    .chart-wrap {
+      background: var(--surface);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 24px;
+      margin-bottom: 28px;
+    }
+    .chart-wrap h2 { font-size: 0.95rem; font-weight: 600; margin-bottom: 16px; }
+    .chart-wrap canvas { max-height: 280px; }
+
+    /* Transfer recommendations */
+    .recs {
+      background: var(--surface);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      margin-bottom: 28px;
+      overflow: hidden;
+    }
+    .recs-header {
+      padding: 16px 22px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .recs-header h2 { font-size: 0.95rem; font-weight: 600; }
+    .badge {
+      background: #ff3b30;
+      color: #fff;
+      border-radius: 10px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 7px;
+    }
+    .badge.zero { background: #34c759; }
+    .rec-item {
+      padding: 16px 22px;
+      border-bottom: 1px solid var(--border-light);
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 12px 18px;
+      align-items: start;
+    }
+    .rec-item:last-child { border-bottom: none; }
+    .rec-amount { font-size: 1.2rem; font-weight: 700; color: #ff3b30; white-space: nowrap; }
+    .rec-by { font-size: 0.7rem; color: var(--text-secondary); margin-top: 2px; }
+    .rec-reason { font-size: 0.85rem; color: var(--text-mid); }
+    .no-recs { padding: 18px 22px; color: #34c759; font-size: 0.9rem; font-weight: 500; }
+
+    /* Events table */
+    .events-wrap {
+      background: var(--surface);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .events-wrap h2 { font-size: 0.95rem; font-weight: 600; padding: 16px 22px; border-bottom: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    thead th {
+      text-align: left;
+      padding: 10px 16px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-secondary);
+      background: var(--surface-3);
+      border-bottom: 1px solid var(--border);
+    }
+    tbody tr { border-bottom: 1px solid var(--border-light); }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr.below td { background: var(--row-alert-bg); }
+    td { padding: 10px 16px; vertical-align: top; }
+    .td-date { white-space: nowrap; color: var(--text-secondary); font-size: 0.8rem; }
+    .td-balance { font-weight: 600; white-space: nowrap; }
+    .td-balance.ok { color: #34c759; }
+    .td-balance.warn { color: #ff9500; }
+    .td-balance.danger { color: #ff3b30; }
+    .evt-pill {
+      display: inline-block;
+      border-radius: 4px;
+      padding: 2px 7px;
+      font-size: 0.75rem;
+      margin: 1px 2px;
+    }
+    .evt-pill.monarch  { background: #bee2ff; color: #00479e; border-left: 3px solid #0071e3; }
+    .evt-pill.calendar { background: #a8edc4; color: #0a5a26; border-left: 3px solid #1d9641; }
+    .evt-pill.predicted { background: #ffd490; color: #7a2600; border-left: 3px solid #c85000; }
+    .evt-pill.scenario  { background: #d4c8ff; color: #30009a; border-left: 3px solid #5856d6; }
+    /* Source color is the single visual signal — no debit/credit text override */
+    .evt-pill.unknown { color: var(--text-secondary); opacity: 0.8; }
+    /* Clickable pill affordance */
+    .evt-pill { cursor: pointer; }
+    .evt-pill:hover { opacity: 0.75; }
+    /* ── Dark mode pill overrides ──────────────────────────────────────── */
+    [data-theme="dark"] .evt-pill.monarch   { background:#003060; color:#82c4ff; border-left-color:#0a84ff; }
+    [data-theme="dark"] .evt-pill.calendar  { background:#003318; color:#6ee490; border-left-color:#30d158; }
+    [data-theme="dark"] .evt-pill.predicted { background:#3a1800; color:#ffb340; border-left-color:#ff9f0a; }
+    [data-theme="dark"] .evt-pill.scenario  { background:#240060; color:#c49fff; border-left-color:#bf5af2; }
+    [data-theme="dark"] .evt-pill.unknown   { background:rgba(255,255,255,0.06); color:var(--text-secondary);
+                                              border:1px solid var(--border); opacity:1; }
+    /* ── Income / expense sub-color (right border) ─────────────────────── */
+    .evt-pill.credit  { border-right: 3px solid #34c759; }
+    .evt-pill.debit   { border-right: 3px solid rgba(255,59,48,0.55); }
+    .evt-pill.unknown { border-right: none; }
+    /* Color-source legend row above the forecast table */
+    .pill-legend { display: flex; flex-wrap: wrap; align-items: center;
+                   gap: 4px; margin: 0 0 10px; }
+    .pill-legend .evt-pill { pointer-events: none; }
+    /* Transaction action popover */
+    #pillPopover {
+      position: fixed; z-index: 600;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.14);
+      min-width: 230px; max-width: 300px; overflow: hidden;
+    }
+    .pill-pop-header { padding: 10px 14px 8px; border-bottom: 1px solid var(--border-light); }
+    .pill-pop-title  { font-size: 0.85rem; font-weight: 600; color: var(--text); }
+    .pill-pop-meta   { font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px; }
+    .pill-pop-source { font-size: 0.73rem; color: var(--text-tertiary); margin-top: 3px; }
+    .pill-pop-action {
+      display: block; width: 100%; text-align: left;
+      background: none; border: none; border-bottom: 1px solid var(--border-light);
+      padding: 9px 14px; font-size: 0.84rem; cursor: pointer;
+      color: var(--text); font-family: inherit;
+    }
+    .pill-pop-action:last-child { border-bottom: none; }
+    .pill-pop-action:hover { background: rgba(0,0,0,0.04); }
+    .pill-pop-action.danger { color: #ff3b30; }
+    .pill-pop-info { padding: 10px 14px; font-size: 0.8rem; color: var(--text-secondary); font-style: italic; }
+    .pill-pop-amount-row {
+      padding: 8px 14px; display: flex; gap: 6px; align-items: center;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .pill-pop-amount-row input {
+      flex: 1; padding: 5px 8px; border: 1px solid var(--border-input);
+      border-radius: 6px; font-size: 0.84rem; font-family: inherit;
+      background: var(--surface); color: var(--text);
+    }
+    .pill-pop-amount-row button {
+      padding: 5px 12px; background: #0071e3; color: #fff;
+      border: none; border-radius: 6px; cursor: pointer; font-size: 0.82rem;
+    }
+    /* Stale-forecast bottom banner */
+    #pillStaleBanner {
+      position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+      background: var(--surface); border: 1px solid var(--border);
+      border-left: 3px solid #34c759; border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+      padding: 9px 14px; font-size: 0.83rem; color: var(--text-secondary);
+      display: flex; align-items: center; gap: 8px; z-index: 590; white-space: nowrap;
+    }
+    #pillStaleBanner a { color: #0071e3; font-weight: 600; text-decoration: none; }
+    .pill-banner-dismiss {
+      background: none; border: none; color: var(--text-secondary);
+      cursor: pointer; font-size: 1.1rem; padding: 0 0 0 2px; line-height: 1; opacity: 0.5;
+    }
+    .pill-banner-dismiss:hover { opacity: 1; }
+    #manageOverridesSection[open] #manageOverridesArrow { transform: rotate(90deg); display: inline-block; }
+
+    /* AI Insights panel */
+    .ai-panel {
+      background: var(--surface);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      margin-bottom: 28px;
+      overflow: hidden;
+    }
+    .ai-header {
+      padding: 16px 22px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .ai-header h2 { font-size: 0.95rem; font-weight: 600; }
+    .ai-status {
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 10px;
+    }
+    .ai-status.fresh { background: #34c759; color: #fff; }
+    .ai-status.stale { background: #ff9500; color: #fff; }
+    .ai-status.loading { background: var(--border); color: var(--text-secondary); }
+    .ai-status.error { background: #ff3b30; color: #fff; }
+    .ai-body { padding: 20px 22px; }
+    .ai-narrative {
+      font-size: 0.9rem;
+      line-height: 1.6;
+      color: var(--text-mid);
+      margin-bottom: 20px;
+    }
+    .ai-section { margin-bottom: 18px; }
+    .ai-section-title {
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+    .ai-transfer-box {
+      background: var(--ai-transfer-bg);
+      border: 1px solid var(--ai-transfer-border);
+      border-radius: 8px;
+      padding: 14px 16px;
+    }
+    .ai-transfer-amount { font-size: 1.2rem; font-weight: 700; color: #c75000; }
+    .ai-transfer-meta { font-size: 0.78rem; color: var(--text-secondary); margin-top: 3px; }
+    .ai-transfer-reasoning { font-size: 0.83rem; color: var(--text-mid); margin-top: 8px; line-height: 1.5; }
+    .ai-surplus-item {
+      background: var(--ai-surplus-bg);
+      border: 1px solid var(--ai-surplus-border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 8px;
+    }
+    .ai-surplus-period { font-size: 0.8rem; font-weight: 600; color: #166534; }
+    .ai-surplus-amount { font-size: 1rem; font-weight: 700; color: #15803d; }
+    .ai-surplus-allocation { font-size: 0.8rem; color: var(--text-mid); margin-top: 4px; }
+    .ai-flag {
+      background: var(--ai-flag-bg);
+      border: 1px solid var(--ai-flag-border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 0.82rem;
+      color: #92400e;
+      margin-bottom: 6px;
+    }
+    .ai-predicted-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .ai-seasonal { font-size: 0.83rem; color: var(--text-secondary); font-style: italic; }
+    .ai-timestamp { font-size: 0.75rem; color: var(--text-tertiary); margin-top: 16px; }
+    .ai-not-available {
+      padding: 20px 22px;
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+    }
+    .ai-correction-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .ai-add-btn {
+      font-size: 0.7rem;
+      background: var(--surface-2);
+      border: 1px solid var(--border-input);
+      border-radius: 4px;
+      padding: 2px 8px;
+      cursor: pointer;
+      color: var(--text-mid);
+      font-weight: 500;
+    }
+    .ai-add-btn:hover { background: var(--surface-3); }
+    .ai-correction-list {
+      font-size: 0.82rem;
+      color: var(--text-mid);
+      line-height: 1.7;
+    }
+    .ai-correction-list li { margin-left: 16px; }
+    .ai-correction-empty { font-size: 0.82rem; color: var(--text-tertiary); font-style: italic; }
+    .ai-correction-form { margin-top: 10px; }
+    .ai-correction-form textarea {
+      width: 100%;
+      font-size: 0.83rem;
+      font-family: inherit;
+      border: 1px solid var(--border-input);
+      border-radius: 6px;
+      padding: 8px 10px;
+      resize: vertical;
+      min-height: 60px;
+      color: var(--text);
+    }
+    .ai-correction-form textarea:focus { outline: none; border-color: #0071e3; background: var(--surface); }
+    .ai-correction-actions { display: flex; gap: 8px; margin-top: 6px; }
+
+    /* Variable Payments card */
+    .pay-override-card {
+      background: var(--surface);
+      border-radius: 14px;
+      padding: 20px 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    }
+    .pay-override-card h2 { font-size: 1rem; font-weight: 600; margin: 0 0 2px; }
+    .pay-override-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 12px 0 4px; }
+    .pay-override-table th,
+    .pay-override-table td { padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--border); }
+    .pay-override-table th { font-weight: 600; color: var(--text-secondary); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.02em; }
+    .pay-override-form { display: flex; gap: 8px; flex-wrap: wrap; padding: 12px 0 2px; border-top: 1px solid var(--border-light); margin-top: 8px; }
+    .pay-override-form input { flex: 1; min-width: 130px; padding: 6px 10px; border: 1px solid var(--border-input); border-radius: 8px; font-size: 0.85rem; font-family: inherit; }
+    .pay-override-form input:focus { outline: none; border-color: #0071e3; }
+    .pay-override-form button { padding: 6px 16px; background: #0071e3; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 500; white-space: nowrap; }
+    .pay-override-form button:hover { background: #0077ed; }
+    .pov-clear-btn { background: none !important; border: none; color: #aeaeb2; cursor: pointer; font-size: 1.1rem; padding: 2px 8px; line-height: 1; }
+    .pov-clear-btn:hover { color: #ff3b30 !important; }
+    .stale-badge { display: inline-block; font-size: 0.7rem; padding: 1px 6px; border-radius: 10px; background: #ffe5e5; color: #c0392b; margin-left: 4px; font-weight: 500; }
+    .corr-type-pill { display: inline-block; font-size: 0.68rem; font-weight: 600; padding: 1px 6px; border-radius: 8px; margin-right: 5px; vertical-align: middle; }
+    .corr-type-pill.correction { background: #e8f4fd; color: #0071e3; }
+    .corr-type-pill.known-fact { background: #edfbf0; color: #1a7f37; }
+    .corr-type-pill.note { background: var(--surface-2); color: var(--text-secondary); }
+    [data-theme="dark"] .corr-type-pill.correction { background: #0a2a4a; color: #5aadff; }
+    [data-theme="dark"] .corr-type-pill.known-fact { background: #0a2a15; color: #4caf72; }
+
+    /* Scenario Modeling card */
+    .scenario-card { background: var(--surface); border-radius: 14px; padding: 20px 24px; margin-bottom: 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); border-left: 3px solid #5856d6; }
+    .scenario-card h2 { font-size: 1rem; font-weight: 600; margin: 0 0 2px; }
+    .scenario-header { display: flex; align-items: center; justify-content: space-between; }
+    .scenario-clear-all { font-size: 0.78rem; color: #ff3b30; background: none; border: none; cursor: pointer; padding: 2px 8px; border-radius: 6px; }
+    .scenario-clear-all:hover { background: #fff0ef; }
+    .scenario-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 12px 0 4px; }
+    .scenario-table th, .scenario-table td { padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--border); }
+    .scenario-table th { font-weight: 600; color: var(--text-secondary); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.02em; }
+    .scenario-form { display: flex; gap: 8px; flex-wrap: wrap; padding: 12px 0 2px; border-top: 1px solid var(--border-light); margin-top: 8px; align-items: center; }
+    .scenario-form input, .scenario-form select { flex: 1; min-width: 120px; padding: 6px 10px; border: 1px solid var(--border-input); border-radius: 8px; font-size: 0.85rem; font-family: inherit; }
+    .scenario-form input:focus, .scenario-form select:focus { outline: none; border-color: #5856d6; }
+    .scenario-form button { padding: 6px 16px; background: #5856d6; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 500; white-space: nowrap; }
+    .scenario-form button:hover { background: #4845c4; }
+    .scenario-hint { font-size: 0.78rem; color: var(--text-tertiary); margin: 6px 0 0; }
+    /* Dollar-prefix wrapper for USD amount inputs */
+    .input-dollar { position: relative; display: inline-flex; align-items: center; flex: 1; min-width: 120px; }
+    .input-dollar::before { content: '$'; position: absolute; left: 8px;
+      color: var(--text-secondary); font-size: 0.84rem; pointer-events: none; }
+    .input-dollar input { padding-left: 24px; width: 100%; box-sizing: border-box; }
+    .ai-save-btn {
+      background: #0071e3;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 5px 14px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .ai-save-btn:hover { background: #0077ed; }
+    .ai-cancel-btn {
+      background: var(--surface-2);
+      color: var(--text-mid);
+      border: 1px solid var(--border-input);
+      border-radius: 6px;
+      padding: 5px 14px;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Balance Forecast</h1>
+    <div class="meta" style="font-size:0.72rem;margin-top:1px;">Account Balance Forecast for Monarch Money</div>
+    {% if data %}
+    <div class="meta">Updated {{ data.refreshed_at }}</div>
+    {% endif %}
+    <span id="aiTokenMeta" class="meta" style="display:none;"></span>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center;">
+    <button id="themeToggle" class="settings-link" onclick="toggleTheme()" title="Toggle dark/light mode" style="padding:6px 10px;font-size:1rem;">🌙</button>
+    <a href="/settings" class="settings-link" title="Configure app settings"><span style="font-size:1.5rem;line-height:1;display:flex;align-items:center;">⚙</span> Settings</a>
+    <div class="split-btn-wrap" id="refreshSplitWrap">
+      <button class="refresh-btn split-main" id="refreshForecastBtn"
+              onclick="refreshForecast()"
+              title="Re-fetches Monarch data and rebuilds the balance chart (~2–5 min)">↻ Refresh Forecast</button>
+      <button class="split-arrow" onclick="toggleRefreshMenu(event)"
+              title="More options" aria-label="More refresh options">▾</button>
+      <div class="split-menu" id="refreshMenu" style="display:none;">
+        <button onclick="refreshForecast()">↻ Refresh Forecast</button>
+        <hr class="split-menu-divider">
+        <button onclick="dashRunAiAnalysis(); closeRefreshMenu();">▶ Run AI Analysis</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+
+{% if error %}
+<div class="error-box">
+  <h2>Setup needed</h2>
+  <p>{{ error }}</p>
+  <p style="margin-top:10px;">
+    <a href="/settings" style="color:var(--error-text);font-weight:600;">→ Open Settings</a>
+  </p>
+</div>
+{% endif %}
+
+{% if data %}
+
+<!-- Summary cards -->
+{% set min_balance = data.days | map(attribute='balance') | min %}
+{% set dip_count = data.days | selectattr('below_threshold') | list | length %}
+
+<div class="cards">
+  <div class="card">
+    <div class="label">Current Balance</div>
+    <div class="value {{ 'ok' if data.current_balance > data.buffer_threshold else ('warn' if data.current_balance > 0 else 'danger') }}">
+      ${{ "{:,.0f}".format(data.current_balance) }}
+    </div>
+  </div>
+  <div class="card">
+    <div class="label">Projected Low ({{ data.horizon_days }}-day)</div>
+    <div class="value {{ 'ok' if min_balance > data.buffer_threshold else ('warn' if min_balance > 0 else 'danger') }}">
+      ${{ "{:,.0f}".format(min_balance) }}
+    </div>
+  </div>
+  <div class="card">
+    <div class="label">Days Below Buffer</div>
+    <div class="value {{ 'danger' if dip_count > 0 else 'ok' }}">{{ dip_count }}</div>
+  </div>
+  <div class="card">
+    <div class="label">Buffer Threshold</div>
+    <div class="value">${{ "{:,.0f}".format(data.buffer_threshold) }}</div>
+  </div>
+</div>
+
+<!-- Chart -->
+<div class="chart-wrap">
+  <h2>Projected Balance — Next {{ data.horizon_days }} Days</h2>
+  <canvas id="balanceChart"></canvas>
+</div>
+
+<!-- Transfer recommendations -->
+<div class="recs">
+  <div class="recs-header">
+    <h2>Transfer Recommendations</h2>
+    {% if data.transfer_recommendations %}
+    <span class="badge">{{ data.transfer_recommendations | length }}</span>
+    {% else %}
+    <span class="badge zero">All clear</span>
+    {% endif %}
+  </div>
+  {% if data.transfer_recommendations %}
+    {% for rec in data.transfer_recommendations %}
+    <div class="rec-item">
+      <div>
+        <div class="rec-amount">${{ "{:,.0f}".format(rec.amount) }}</div>
+        <div class="rec-by">Transfer by {{ rec.transfer_by }}</div>
+      </div>
+      <div class="rec-reason">{{ rec.reason }}</div>
+    </div>
+    {% endfor %}
+  {% else %}
+  <div class="no-recs">No transfers needed — balance stays above threshold throughout the forecast period.</div>
+  {% endif %}
+</div>
+
+<!-- AI Insights panel — loads async after main content -->
+<div class="ai-panel" id="aiPanel" style="display:none;">
+  <div class="ai-header">
+    <h2>AI Insights</h2>
+    <span class="ai-status loading" id="aiStatus">Loading…</span>
+    <button id="dashRunAiBtn" onclick="dashRunAiAnalysis()"
+            style="margin-left:auto;background:none;border:1px solid #d2d2d7;border-radius:6px;padding:3px 10px;font-size:0.75rem;font-weight:500;color:#6e6e73;cursor:pointer;"
+            title="Re-run AI analysis — may take a few minutes">▶ Refresh AI</button>
+  </div>
+  <div id="aiContent">
+    <div class="ai-not-available">Fetching AI analysis…</div>
+  </div>
+</div>
+
+<!-- Scenario Modeling card -->
+<div class="scenario-card" id="scenarioCard">
+  <div class="scenario-header">
+    <div>
+      <h2>Scenario Modeling</h2>
+      <p class="meta" style="margin:0;">Add one-time transfers or expenses to model their impact on the forecast.</p>
+    </div>
+    <button class="scenario-clear-all" onclick="clearAllScenarios()" title="Remove all scenario events and reload">Clear All</button>
+  </div>
+  <div id="scenarioList"><span style="font-size:0.82rem;color:#aeaeb2;font-style:italic;">Loading…</span></div>
+  <div class="scenario-form">
+    <input id="scnDate"   type="date" />
+    <input id="scnDesc"   type="text"   placeholder="Description (e.g. Transfer from Savings)" style="flex:2;min-width:200px;" />
+    <div class="input-dollar"><input id="scnAmount" type="number" placeholder="Amount" min="0" step="100" /></div>
+    <select id="scnSign">
+      <option value="1">Income</option>
+      <option value="-1">Expense</option>
+    </select>
+    <select id="scnFreq" style="min-width:150px;">
+      <option value="one-time">One-time</option>
+      <option value="WEEKLY">Weekly</option>
+      <option value="BIWEEKLY">Bi-weekly (every 2 wks)</option>
+      <option value="MONTHLY">Monthly</option>
+      <option value="BIMONTHLY">Bi-monthly (every 2 mos)</option>
+      <option value="QUARTERLY">Quarterly</option>
+    </select>
+    <button onclick="addScenarioEvent()">Add Event</button>
+  </div>
+  <div id="scenarioRefreshHint" style="display:none;margin-top:10px;padding:8px 12px;
+       background:rgba(52,199,89,0.1);border-left:3px solid #34c759;border-radius:6px;
+       font-size:0.82rem;color:var(--text-secondary);">
+    Event saved —
+    <a href="javascript:void(0)" onclick="recalcForecast()"
+       style="color:#0071e3;font-weight:600;text-decoration:none;">↻ Recalculate</a>
+    to see it on your chart. Add more events first if you like.
+  </div>
+  <p class="scenario-hint">Income = credit to checking. Expense = debit from checking.</p>
+</div>
+
+<!-- Variable Payments override card + Skip a Month (collapsed by default) -->
+<details id="manageOverridesSection" style="margin-top:4px;margin-bottom:20px;">
+  <summary style="cursor:pointer;font-size:0.84rem;color:var(--text-secondary);
+                  padding:6px 0;user-select:none;list-style:none;
+                  display:flex;align-items:center;gap:6px;">
+    <span id="manageOverridesArrow" style="font-size:0.75rem;transition:transform 0.2s;">&#9654;</span>
+    Manage All Overrides &amp; Skips
+  </summary>
+
+<div class="pay-override-card" id="payOverrideCard">
+  <h2>Variable Payments</h2>
+  <p class="meta" style="margin:0 0 2px;">Override Monarch's learned amount for a recurring payment. Enter <strong>0</strong> to suppress it from the entire forecast, or use <strong>Skip a Month</strong> below to remove one specific month's occurrence.</p>
+  <div id="payOverrideList"><span style="font-size:0.82rem;color:#aeaeb2;font-style:italic;">Loading…</span></div>
+  <div class="pay-override-form">
+    <input id="povName"   type="text"   placeholder="Recurring item name (e.g. Credit Card)" />
+    <div class="input-dollar"><input id="povAmount" type="number" placeholder="Amount (e.g. 750)" min="0" step="0.01" /></div>
+    <input id="povNote"   type="text"   placeholder="Note (e.g. September statement)" />
+    <button onclick="savePayOverride()">Save Override</button>
+  </div>
+  <div id="payOverrideRefreshHint" style="display:none;margin-top:10px;padding:8px 12px;
+       background:rgba(52,199,89,0.1);border-left:3px solid #34c759;border-radius:6px;
+       font-size:0.82rem;color:var(--text-secondary);">
+    Override saved —
+    <a href="javascript:void(0)" onclick="recalcForecast()"
+       style="color:#0071e3;font-weight:600;text-decoration:none;">↻ Recalculate</a>
+    to update your balance projections.
+  </div>
+
+  <div style="border-top:1px solid var(--border-light);margin-top:16px;padding-top:14px;">
+    <h3 style="font-size:0.85rem;font-weight:600;margin:0 0 4px;color:var(--text);">Skip a Month</h3>
+    <p class="meta" style="margin:0 0 10px;">Remove one specific month's occurrence without affecting other months.</p>
+    <div id="paySkipList"><span style="font-size:0.82rem;color:#aeaeb2;font-style:italic;">Loading…</span></div>
+    <div class="pay-override-form" id="paySkipForm">
+      <input id="pskName"  type="text"  placeholder="Recurring item name (e.g. Brown University)" style="flex:2;" />
+      <input id="pskMonth" type="month" title="Month to skip" />
+      <input id="pskNote"  type="text"  placeholder="Note (optional)" />
+      <button onclick="savePaySkip()">Skip Month</button>
+    </div>
+    <div id="paySkipRefreshHint" style="display:none;margin-top:10px;padding:8px 12px;
+         background:rgba(52,199,89,0.1);border-left:3px solid #34c759;border-radius:6px;
+         font-size:0.82rem;color:var(--text-secondary);">
+      Skip saved —
+      <a href="javascript:void(0)" onclick="recalcForecast()"
+         style="color:#0071e3;font-weight:600;text-decoration:none;">↻ Recalculate</a>
+      to update your chart.
+    </div>
+  </div>
+</div>
+</details>
+
+<!-- Day-by-day events table -->
+<div class="events-wrap">
+  <h2>Scheduled Payments &amp; Credits</h2>
+  <div class="pill-legend">
+    <span style="font-size:0.74rem;color:var(--text-tertiary);margin-right:2px;line-height:1.9;">Key:</span>
+    <span class="evt-pill monarch"   style="cursor:default;">Monarch</span>
+    <span class="evt-pill calendar"  style="cursor:default;">Calendar</span>
+    <span class="evt-pill predicted" style="cursor:default;">AI Predicted</span>
+    <span class="evt-pill scenario"  style="cursor:default;">Scenario</span>
+    <span class="evt-pill calendar unknown" style="cursor:default;">$? (no amount)</span>
+    <span style="font-size:0.7rem;color:var(--text-tertiary);margin-left:4px;align-self:center;">│ right edge:</span>
+    <span style="display:inline-flex;align-items:center;gap:3px;font-size:0.7rem;color:var(--text-secondary);">
+      <span style="display:inline-block;width:10px;height:13px;border-right:3px solid #34c759;"></span>income
+    </span>
+    <span style="display:inline-flex;align-items:center;gap:3px;font-size:0.7rem;color:var(--text-secondary);">
+      <span style="display:inline-block;width:10px;height:13px;border-right:3px solid rgba(255,59,48,0.6);"></span>expense
+    </span>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Events</th>
+        <th>Projected Balance</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for day in data.days %}
+      {% if day.events or loop.index <= 7 %}
+      <tr class="{{ 'below' if day.below_threshold else '' }}">
+        <td class="td-date">{{ day.date }}</td>
+        <td>
+          {% for evt in day.events %}
+            {% set sign = '+' if (evt.amount or 0) > 0 else ('-' if (evt.amount or 0) < 0 else '') %}
+            {% set amt_str = (sign + '$' + '{:,.0f}'.format(evt.amount | abs)) if evt.amount is not none else '$?' %}
+            {% set is_credit = (evt.amount or 0) > 0 %}
+            <span class="evt-pill {{ evt.source }} {{ 'credit' if is_credit else ('debit' if evt.amount is not none else 'unknown') }}"
+                  data-source="{{ evt.source }}"
+                  data-desc="{{ evt.description | e }}"
+                  data-amount="{{ evt.amount if evt.amount is not none else '' }}"
+                  data-date="{{ day.date }}"
+                  data-month="{{ day.date[:7] }}"
+                  data-sid="{{ evt.scenario_id or '' }}"
+                  onclick="openPillPopover(this)">
+              {{ evt.description }} {{ amt_str }}
+            </span>
+          {% endfor %}
+        </td>
+        <td class="td-balance {{ 'ok' if day.balance > data.buffer_threshold else ('warn' if day.balance > 0 else 'danger') }}">
+          ${{ "{:,.0f}".format(day.balance) }}
+        </td>
+      </tr>
+      {% endif %}
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Chart.js script -->
+<script>
+(function() {
+  const days = {{ data.days | tojson }};
+  const threshold = {{ data.buffer_threshold }};
+
+  const labels = days.map(d => d.date);
+  const balances = days.map(d => d.balance);
+
+  const ctx = document.getElementById('balanceChart').getContext('2d');
+
+  // Build red zone: fill below threshold
+  const thresholdLine = days.map(() => threshold);
+
+  // Pin tooltip to top of chart so it never covers data nodes.
+  // x follows the cursor; y anchors to the chart top edge; alignment flips
+  // left↔right at 60% width so it doesn't clip either side edge.
+  Chart.Tooltip.positioners.topFixed = function(items, eventPos) {
+    const ca = this.chart.chartArea;
+    const rightThird = ca.left + (ca.right - ca.left) * 0.6;
+    return {
+      x: Math.min(Math.max(eventPos.x, ca.left), ca.right),
+      y: ca.top + 6,
+      xAlign: eventPos.x > rightThird ? 'right' : 'left',
+      yAlign: 'top',
+    };
+  };
+
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Projected Balance',
+          data: balances,
+          borderColor: '#0071e3',
+          backgroundColor: 'rgba(0, 113, 227, 0.08)',
+          borderWidth: 2,
+          pointRadius: days.map(d => d.events.length > 0 ? 4 : 0),
+          pointHoverRadius: 5,
+          pointStyle: 'line',
+          fill: false,
+          tension: 0.3,
+        },
+        {
+          label: 'Buffer Threshold',
+          data: thresholdLine,
+          borderColor: '#ff3b30',
+          borderWidth: 1.5,
+          borderDash: [6, 4],
+          pointRadius: 0,
+          pointStyle: 'line',
+          fill: false,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { usePointStyle: true, pointStyleWidth: 28, font: { size: 12 } } },
+        tooltip: {
+          position: 'topFixed',
+          callbacks: {
+            label: ctx => {
+              if (ctx.datasetIndex === 0) {
+                const d = days[ctx.dataIndex];
+                const MAX = 6;
+                const evts = d.events.slice(0, MAX).map(e => {
+                  const sign = (e.amount || 0) > 0 ? '+' : '';
+                  const amt = e.amount != null ? ` (${sign}$${Math.abs(e.amount).toLocaleString()})` : '';
+                  return `  • ${e.description}${amt}`;
+                });
+                if (d.events.length > MAX) evts.push(`  \u2026 and ${d.events.length - MAX} more`);
+                return [`Balance: $${ctx.parsed.y.toLocaleString()}`, ...evts];
+              }
+              return `Threshold: $${ctx.parsed.y.toLocaleString()}`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { maxTicksLimit: 12, font: { size: 11 } },
+          grid: { display: false }
+        },
+        y: {
+          ticks: {
+            callback: v => '$' + v.toLocaleString(),
+            font: { size: 11 }
+          },
+          grid: { color: '#f0f0f5' }
+        }
+      }
+    }
+  });
+})();
+</script>
+
+<!-- AI Insights loader -->
+<script>
+(function() {
+  function fmt(amount) {
+    if (amount == null) return '$?';
+    var sign = amount >= 0 ? '+' : '-';
+    return sign + '$' + Math.abs(amount).toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+  }
+
+  function freqLabel(items) {
+    if (items.length < 2) return '';
+    var dates = items.map(function(p) { return new Date(p.date); }).sort(function(a,b){return a-b;});
+    var gaps = [];
+    for (var i = 1; i < dates.length; i++) gaps.push((dates[i]-dates[i-1])/86400000);
+    var avg = gaps.reduce(function(s,g){return s+g;},0)/gaps.length;
+    if (avg <= 10)  return 'Weekly';
+    if (avg <= 20)  return 'Bi-weekly';
+    if (avg <= 45)  return 'Monthly';
+    if (avg <= 75)  return 'Bi-monthly';
+    if (avg <= 120) return 'Quarterly';
+    if (avg <= 200) return 'Semi-annual';
+    return 'Annual';
+  }
+
+  function renderAiInsights(data) {
+    var panel = document.getElementById('aiPanel');
+    var status = document.getElementById('aiStatus');
+    var content = document.getElementById('aiContent');
+
+    panel.style.display = '';
+
+    // Status badge
+    if (data.status === 'fresh') {
+      status.textContent = 'Fresh';
+      status.className = 'ai-status fresh';
+    } else if (data.status === 'stale') {
+      status.textContent = 'Stale';
+      status.className = 'ai-status stale';
+    } else if (data.status === 'not_generated') {
+      status.textContent = 'Not generated';
+      status.className = 'ai-status error';
+      var notGenMsg = data.ai_ready
+        ? 'Click <strong>▶ Refresh AI</strong> above to generate your first AI insights.'
+        : 'No AI insights yet. Go to <a href="/settings#ai">Settings → AI Insights</a> to configure an AI provider, then click <strong>▶ Refresh AI</strong> above.';
+      content.innerHTML = '<div class="ai-not-available">' + notGenMsg + '</div>';
+      return;
+    } else {
+      status.textContent = data.status || '?';
+      status.className = 'ai-status loading';
+    }
+
+    // Session token accumulation — track cumulative usage across AI runs this session
+    var usage = data.token_usage;
+    if (usage && data.generated_at) {
+      var lastAt = sessionStorage.getItem('_aiLastAt');
+      if (lastAt !== data.generated_at) {
+        // New analysis — add to session totals
+        sessionStorage.setItem('_aiLastAt', data.generated_at);
+        var prev = JSON.parse(sessionStorage.getItem('_aiSession') || '{"in":0,"out":0,"cost":0,"runs":0}');
+        sessionStorage.setItem('_aiSession', JSON.stringify({
+          in:   prev.in   + (usage.input_tokens  || 0),
+          out:  prev.out  + (usage.output_tokens || 0),
+          cost: prev.cost + (usage.cost_usd      || 0),
+          runs: prev.runs + 1,
+        }));
+      }
+      _updateAiSessionDisplay();
+    }
+
+    var html = '<div class="ai-body">';
+
+    // Narrative
+    if (data.narrative) {
+      html += '<div class="ai-narrative">' + escHtml(data.narrative) + '</div>';
+    }
+
+    // Transfer recommendation
+    var rec = data.transfer_recommendation;
+    if (rec && rec.amount) {
+      html += '<div class="ai-section">';
+      html += '<div class="ai-section-title">Recommended Transfer</div>';
+      html += '<div class="ai-transfer-box">';
+      html += '<div class="ai-transfer-amount">$' + rec.amount.toLocaleString() + '</div>';
+      html += '<div class="ai-transfer-meta">from ' + escHtml(rec.source_account || 'Savings') +
+              ' &mdash; transfer by ' + escHtml(rec.transfer_by || '?') + '</div>';
+      if (rec.reasoning) {
+        html += '<div class="ai-transfer-reasoning">' + escHtml(rec.reasoning) + '</div>';
+      }
+      html += '</div></div>';
+    }
+
+    // Predicted expenses
+    var predicted = data.predicted_expenses || [];
+    if (predicted.length > 0) {
+      html += '<div class="ai-section">';
+      html += '<div class="ai-section-title">Predicted Expenses (from prior-year patterns)</div>';
+      html += '<div class="ai-predicted-list">';
+      // Group by description (case-insensitive) so recurring predictions show as one pill
+      var groups = {};
+      predicted.forEach(function(p) {
+        var key = (p.description || '').trim().toLowerCase();
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(p);
+      });
+      Object.keys(groups).forEach(function(key) {
+        var items = groups[key];
+        var rep = items[0];
+        var amt = rep.amount != null ? fmt(rep.amount) : '$?';
+        var conf = items.some(function(p){return p.confidence==='low';}) ? 'low'
+                 : items.some(function(p){return p.confidence==='medium';}) ? 'medium' : 'high';
+        var opacity = conf === 'high' ? '1' : (conf === 'medium' ? '0.8' : '0.65');
+        var freq = freqLabel(items);
+        var freqStr = freq ? ' \u00b7 ' + freq : (items.length > 1 ? ' \u00d7' + items.length : '');
+        var titleDates = items.map(function(p){return p.date||'';}).join(', ');
+        html += '<span class="evt-pill predicted debit" style="opacity:' + opacity + '" title="' +
+                escHtml(titleDates) + ' &bull; ' + conf + ' confidence">' +
+                escHtml(rep.description || '') + ' ' + escHtml(amt) + escHtml(freqStr) + '</span>';
+      });
+      html += '</div></div>';
+    }
+
+    // Surplus alerts
+    var surpluses = data.surplus_alerts || [];
+    if (surpluses.length > 0) {
+      html += '<div class="ai-section">';
+      html += '<div class="ai-section-title">Surplus Opportunities</div>';
+      surpluses.forEach(function(s) {
+        html += '<div class="ai-surplus-item">';
+        html += '<div style="display:flex;align-items:baseline;gap:10px;">';
+        html += '<span class="ai-surplus-period">' + escHtml(s.period || '') + '</span>';
+        html += '<span class="ai-surplus-amount">+$' + (s.estimated_surplus || 0).toLocaleString() + ' surplus</span>';
+        html += '</div>';
+        if (s.suggested_allocation) {
+          html += '<div class="ai-surplus-allocation">' + escHtml(s.suggested_allocation) + '</div>';
+        }
+        html += '</div>';
+      });
+      html += '</div>';
+    }
+
+    // Risk flags
+    var flags = data.risk_flags || [];
+    if (flags.length > 0) {
+      html += '<div class="ai-section">';
+      html += '<div class="ai-section-title">Risk Flags</div>';
+      flags.forEach(function(f) {
+        html += '<div class="ai-flag">⚠ ' + escHtml(f) + '</div>';
+      });
+      html += '</div>';
+    }
+
+    // Seasonal notes
+    if (data.seasonal_notes) {
+      html += '<div class="ai-section">';
+      html += '<div class="ai-section-title">Seasonal Notes</div>';
+      html += '<div class="ai-seasonal">' + escHtml(data.seasonal_notes) + '</div>';
+      html += '</div>';
+    }
+
+    // Corrections
+    html += '<div class="ai-section" style="border-top:1px solid var(--border-light);padding-top:16px;margin-top:4px;">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">';
+    html += '<div class="ai-section-title" style="margin-bottom:0;">Corrections</div>';
+    html += '<button class="scenario-clear-all" onclick="clearAllCorrections()" id="corrClearAll" style="display:none;" title="Remove all corrections">Clear All</button>';
+    html += '</div>';
+    html += '<div id="correctionList"></div>';
+    html += '<div id="correctionForm" style="display:none;margin-top:10px;">';
+    html += '<div style="display:flex;gap:6px;margin-bottom:6px;align-items:center;">';
+    html += '<select id="corrType" style="font-size:0.8rem;padding:4px 8px;border:1px solid var(--border-input);border-radius:6px;background:var(--surface);color:var(--text);cursor:pointer;">';
+    html += '<option value="Correction">Correction</option>';
+    html += '<option value="Known Fact">Known Fact</option>';
+    html += '<option value="Note">Note</option>';
+    html += '</select>';
+    html += '</div>';
+    html += '<textarea id="correctionText" rows="2" style="width:100%;font-size:0.83rem;font-family:inherit;border:1px solid var(--border-input);border-radius:6px;padding:8px 10px;resize:vertical;color:var(--text);background:var(--surface);min-height:52px;box-sizing:border-box;" placeholder="e.g. Credit card payment is always the full statement balance"></textarea>';
+    html += '<div style="display:flex;gap:8px;margin-top:6px;">';
+    html += '<button class="ai-save-btn" id="corrSaveBtn" onclick="submitCorrection()">Save</button>';
+    html += '<button class="ai-cancel-btn" onclick="toggleCorrectionForm()">Cancel</button>';
+    html += '</div></div>';
+    html += '<button class="ai-add-btn" id="corrAddBtn" onclick="toggleCorrectionForm()" style="margin-top:8px;">+ Add</button>';
+    html += '</div>';
+
+    // Timestamp
+    if (data.generated_at) {
+      var ts = new Date(data.generated_at);
+      html += '<div class="ai-timestamp">AI analysis generated ' + ts.toLocaleString() +
+              (data.status === 'stale' ? ' — <span style="color:#ff9500;">⚠ stale — click ▶ Refresh AI above to update</span>' : '') +
+              '</div>';
+    }
+
+    html += '</div>';
+    content.innerHTML = html;
+
+    // Load corrections after panel is rendered
+    loadCorrections();
+  }
+
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // Expose globally so correction handlers and the on-load poller can call it
+  window.loadAiInsights = function() {
+    fetch('/api/ai-insights')
+      .then(function(r) { return r.json(); })
+      .then(function(data) { renderAiInsights(data); })
+      .catch(function() {});
+  };
+
+  // Fetch asynchronously so it doesn't block the chart
+  window.loadAiInsights();
+
+  // If an AI run is already in progress (started from Settings), auto-poll until done
+  fetch('/api/ai-analysis-status')
+    .then(function(r) { return r.json(); })
+    .then(function(s) {
+      if (!s.running) return;
+      var btn = document.getElementById('dashRunAiBtn');
+      var aiPanel = document.getElementById('aiPanel');
+      if (btn) { btn.textContent = 'Running\u2026'; btn.disabled = true; btn.style.color = '#ff9500'; }
+      if (aiPanel) aiPanel.classList.add('running');
+      // Don't double-up if dashRunAiAnalysis already started a poller
+      if (typeof _dashAiPollInterval !== 'undefined' && _dashAiPollInterval) return;
+      _dashAiPollInterval = setInterval(function() {
+        fetch('/api/ai-analysis-status')
+          .then(function(r) { return r.json(); })
+          .then(function(s2) {
+            if (!s2.running) {
+              clearInterval(_dashAiPollInterval);
+              _dashAiPollInterval = null;
+              if (aiPanel) aiPanel.classList.remove('running');
+              if (btn) { btn.textContent = '\u25b6 Refresh AI'; btn.style.color = ''; btn.disabled = false; }
+              window.loadAiInsights();
+            }
+          });
+      }, 5000);
+    })
+    .catch(function() {});
+})();
+</script>
+
+<!-- Variable Payment Overrides — global scope so onclick handlers can reach these -->
+<script>
+function _escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function loadPayOverrides() {
+  fetch('/api/payment-overrides')
+    .then(function(r) { return r.json(); })
+    .then(renderPayOverrides)
+    .catch(function(e) {
+      var list = document.getElementById('payOverrideList');
+      if (list) list.innerHTML = '<p style="font-size:0.82rem;color:#ff3b30;">Could not load overrides.</p>';
+    });
+}
+
+function _overrideAgeDays(updatedStr) {
+  if (!updatedStr) return null;
+  var d = new Date(updatedStr);
+  if (isNaN(d)) return null;
+  return Math.floor((Date.now() - d.getTime()) / 86400000);
+}
+
+// ── Corrections (global scope — called from onclick attrs) ────────────────────
+
+var _correctionItems = [];
+
+function loadCorrections() {
+  fetch('/api/corrections')
+    .then(function(r) { return r.json(); })
+    .then(function(data) { renderCorrections(data.corrections || []); })
+    .catch(function() {});
+}
+
+function _corrTypePill(type) {
+  var cls = type === 'Correction' ? 'correction' : type === 'Known Fact' ? 'known-fact' : 'note';
+  return '<span class="corr-type-pill ' + cls + '">' + _escHtml(type) + '</span>';
+}
+
+function renderCorrections(items) {
+  _correctionItems = items;
+  var list = document.getElementById('correctionList');
+  var clearBtn = document.getElementById('corrClearAll');
+  if (!list) return;
+  if (clearBtn) clearBtn.style.display = items.length ? '' : 'none';
+  if (!items.length) {
+    list.innerHTML = '<span class="ai-correction-empty">No corrections yet. Click \u201c+ Add\u201d to add one.</span>';
+    return;
+  }
+  var html = '<table style="width:100%;border-collapse:collapse;font-size:0.82rem;">';
+  items.forEach(function(c, idx) {
+    var ageDays = _overrideAgeDays(c.date);
+    var stale = '';
+    if (ageDays !== null && ageDays >= 30) {
+      stale = ' <span class="stale-badge">stale (' + ageDays + 'd)</span>';
+    } else if (ageDays !== null && ageDays >= 7) {
+      stale = ' <span class="stale-badge" style="background:#fff3cd;color:#856404;">' + ageDays + 'd old</span>';
+    }
+    html += '<tr style="border-bottom:1px solid var(--border-light);">'
+          + '<td style="padding:6px 4px 6px 0;vertical-align:top;white-space:nowrap;color:var(--text-secondary);font-size:0.78rem;">'
+          +   _escHtml(c.date) + stale + '</td>'
+          + '<td style="padding:6px 6px;vertical-align:top;">'
+          +   _corrTypePill(c.type) + _escHtml(c.text) + '</td>'
+          + '<td style="padding:6px 0 6px 4px;vertical-align:top;">'
+          +   '<button class="pov-clear-btn" title="Delete" '
+          +   'data-idx="' + idx + '" onclick="deleteCorrection(this.dataset.idx)">&#215;</button></td>'
+          + '</tr>';
+  });
+  html += '</table>';
+  list.innerHTML = html;
+}
+
+function toggleCorrectionForm() {
+  var form = document.getElementById('correctionForm');
+  var addBtn = document.getElementById('corrAddBtn');
+  if (!form) return;
+  var showing = form.style.display !== 'none';
+  form.style.display = showing ? 'none' : '';
+  if (addBtn) addBtn.style.display = showing ? '' : 'none';
+  if (!showing) {
+    var ta = document.getElementById('correctionText');
+    if (ta) { ta.value = ''; ta.focus(); }
+  }
+}
+
+function _afterCorrection() {
+  loadCorrections();
+  if (window.loadAiInsights) window.loadAiInsights();
+}
+
+function submitCorrection() {
+  var ta = document.getElementById('correctionText');
+  var typeEl = document.getElementById('corrType');
+  var btn = document.getElementById('corrSaveBtn');
+  if (!ta) return;
+  var text = ta.value.trim();
+  var ctype = typeEl ? typeEl.value : 'Correction';
+  if (!text) { ta.focus(); return; }
+  if (btn) { btn.textContent = 'Saving\u2026'; btn.disabled = true; }
+  fetch('/api/corrections', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({action: 'add', text: text, type: ctype}),
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.ok) {
+      toggleCorrectionForm();
+      _afterCorrection();
+    }
+  })
+  .catch(function() {})
+  .finally(function() {
+    if (btn) { btn.textContent = 'Save'; btn.disabled = false; }
+  });
+}
+
+function deleteCorrection(idx) {
+  var c = _correctionItems[parseInt(idx)];
+  if (!c) return;
+  if (!confirm('Delete this correction?\n\n"' + c.text + '"')) return;
+  fetch('/api/corrections', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({action: 'delete', raw: c.raw || ('- [' + c.date + '] [' + c.type + '] ' + c.text)}),
+  })
+  .then(function(r) { return r.json(); })
+  .then(function() { _afterCorrection(); })
+  .catch(function() { alert('Could not delete correction.'); });
+}
+
+function clearAllCorrections() {
+  if (!confirm('Remove ALL corrections? This cannot be undone.')) return;
+  fetch('/api/corrections', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({action: 'clear'}),
+  })
+  .then(function(r) { return r.json(); })
+  .then(function() { _afterCorrection(); })
+  .catch(function() { alert('Could not clear corrections.'); });
+}
+
+function renderPayOverrides(data) {
+  var list = document.getElementById('payOverrideList');
+  if (!list) return;
+  var keys = Object.keys(data);
+  if (keys.length === 0) {
+    list.innerHTML = '<p style="font-size:0.82rem;color:#aeaeb2;font-style:italic;margin:10px 0 0;">'
+      + 'No overrides set. Use the form below to enter a known upcoming payment.</p>';
+    return;
+  }
+  var html = '<table class="pay-override-table"><thead><tr>'
+    + '<th>Name</th><th>Override Amount</th><th>Note</th><th>Entered</th><th></th>'
+    + '</tr></thead><tbody>';
+  keys.forEach(function(k) {
+    var o = data[k];
+    var dispAmt = Math.abs(o.amount) < 0.01
+      ? '<span style="color:#ff9500;font-weight:600;font-size:0.82rem;">Suppressed</span>'
+      : '\u2212$' + Math.abs(o.amount).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    var ageDays = _overrideAgeDays(o.updated);
+    var staleBadge = '';
+    if (ageDays !== null && ageDays >= 30) {
+      staleBadge = ' <span class="stale-badge">stale (' + ageDays + 'd)</span>';
+    } else if (ageDays !== null && ageDays >= 7) {
+      staleBadge = ' <span class="stale-badge" style="background:#fff3cd;color:#856404;">' + ageDays + 'd old</span>';
+    }
+    html += '<tr>'
+      + '<td>' + _escHtml(o.name || k) + '</td>'
+      + '<td class="neg" style="font-weight:500;">' + dispAmt + '</td>'
+      + '<td style="color:#6e6e73;">' + _escHtml(o.note || '') + '</td>'
+      + '<td style="color:#aeaeb2;white-space:nowrap;">' + _escHtml(o.updated || '') + staleBadge + '</td>'
+      + '<td><button class="pov-clear-btn" title="Delete override" '
+      + 'data-key="' + k.replace(/&/g,'&amp;').replace(/"/g,'&quot;') + '" '
+      + 'onclick="clearPayOverride(this.dataset.key)">&#215;</button></td>'
+      + '</tr>';
+  });
+  html += '</tbody></table>';
+  list.innerHTML = html;
+}
+
+function savePayOverride() {
+  var name   = document.getElementById('povName').value.trim();
+  var amount = document.getElementById('povAmount').value;
+  var note   = document.getElementById('povNote').value.trim();
+  if (!name || !amount) { alert('Name and amount are required.'); return; }
+
+  var btn = document.querySelector('#payOverrideCard .pay-override-form button');
+  var origText = btn.textContent;
+  btn.textContent = 'Saving…';
+  btn.disabled = true;
+
+  fetch('/api/payment-overrides', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({name: name, amount: parseFloat(amount), note: note})
+  })
+  .then(function(r) {
+    if (!r.ok) throw new Error('Server error ' + r.status);
+    return r.json();
+  })
+  .then(function() {
+    btn.textContent = 'Saved ✓';
+    btn.style.background = '#34c759';
+    document.getElementById('povName').value = '';
+    document.getElementById('povAmount').value = '';
+    document.getElementById('povNote').value = '';
+    loadPayOverrides();
+    var hint = document.getElementById('payOverrideRefreshHint');
+    if (hint) {
+      hint.style.display = 'block';
+      clearTimeout(hint._hideTimer);
+      hint._hideTimer = setTimeout(function() { hint.style.display = 'none'; }, 12000);
+    }
+    setTimeout(function() {
+      btn.textContent = origText;
+      btn.style.background = '';
+      btn.disabled = false;
+    }, 2000);
+  })
+  .catch(function(err) {
+    btn.textContent = 'Error — try again';
+    btn.style.background = '#ff3b30';
+    btn.disabled = false;
+    console.error('savePayOverride error:', err);
+    setTimeout(function() {
+      btn.textContent = origText;
+      btn.style.background = '';
+    }, 3000);
+  });
+}
+
+function clearPayOverride(nameKey) {
+  if (!confirm('Delete override for "' + nameKey + '"?\nThe forecast will revert to Monarch\'s learned amount.')) return;
+  fetch('/api/payment-overrides', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({name: nameKey, clear: true})
+  })
+  .then(function(r) { return r.json(); })
+  .then(loadPayOverrides)
+  .catch(function() { alert('Could not delete override. Check the server log.'); });
+}
+
+loadPayOverrides();
+
+function loadPaySkips() {
+  fetch('/api/payment-skips')
+    .then(function(r) { return r.json(); })
+    .then(renderPaySkips)
+    .catch(function() {});
+}
+
+function renderPaySkips(data) {
+  var list = document.getElementById('paySkipList');
+  if (!list) return;
+  if (!data.length) {
+    list.innerHTML = '<p style="font-size:0.82rem;color:#aeaeb2;font-style:italic;margin:6px 0 0;">'
+      + 'No months skipped. Use the form below to remove a specific month\'s payment.</p>';
+    return;
+  }
+  var html = '<table class="pay-override-table"><thead><tr>'
+    + '<th>Name</th><th>Month</th><th>Note</th><th></th>'
+    + '</tr></thead><tbody>';
+  data.forEach(function(s) {
+    var parts = s.month.split('-');
+    var monthLabel = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, 1)
+      .toLocaleString('default', {month:'long', year:'numeric'});
+    html += '<tr>'
+      + '<td>' + _escHtml(s.name) + '</td>'
+      + '<td style="font-weight:500;">' + _escHtml(monthLabel) + '</td>'
+      + '<td style="color:#6e6e73;">' + _escHtml(s.note || '') + '</td>'
+      + '<td><button class="pov-clear-btn" title="Remove skip"'
+      + ' data-name="' + s.name.replace(/&/g,'&amp;').replace(/"/g,'&quot;') + '"'
+      + ' data-month="' + s.month + '"'
+      + ' onclick="clearPaySkip(this.dataset.name, this.dataset.month)">\u00d7</button></td>'
+      + '</tr>';
+  });
+  html += '</tbody></table>';
+  list.innerHTML = html;
+}
+
+function savePaySkip() {
+  var name  = document.getElementById('pskName').value.trim();
+  var month = document.getElementById('pskMonth').value;
+  var note  = document.getElementById('pskNote').value.trim();
+  if (!name || !month) { alert('Name and month are required.'); return; }
+
+  var btn = document.querySelector('#paySkipForm button');
+  var origText = btn.textContent;
+  btn.textContent = 'Saving\u2026';
+  btn.disabled = true;
+
+  fetch('/api/payment-skips', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({name: name, month: month, note: note})
+  })
+  .then(function(r) {
+    if (!r.ok) throw new Error('Server error ' + r.status);
+    return r.json();
+  })
+  .then(function() {
+    btn.textContent = 'Saved \u2713';
+    btn.style.background = '#34c759';
+    document.getElementById('pskName').value  = '';
+    document.getElementById('pskMonth').value = '';
+    document.getElementById('pskNote').value  = '';
+    loadPaySkips();
+    var hint = document.getElementById('paySkipRefreshHint');
+    if (hint) {
+      hint.style.display = 'block';
+      clearTimeout(hint._hideTimer);
+      hint._hideTimer = setTimeout(function() { hint.style.display = 'none'; }, 12000);
+    }
+    setTimeout(function() {
+      btn.textContent = origText;
+      btn.style.background = '';
+      btn.disabled = false;
+    }, 2000);
+  })
+  .catch(function() {
+    btn.textContent = 'Error \u2014 try again';
+    btn.style.background = '#ff3b30';
+    btn.disabled = false;
+    setTimeout(function() { btn.textContent = origText; btn.style.background = ''; }, 3000);
+  });
+}
+
+function clearPaySkip(name, month) {
+  var parts = month.split('-');
+  var label = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, 1)
+    .toLocaleString('default', {month:'long', year:'numeric'});
+  if (!confirm('Remove skip for "' + name + '" in ' + label + '?')) return;
+  fetch('/api/payment-skips', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({name: name, month: month, clear: true})
+  })
+  .then(function(r) { return r.json(); })
+  .then(loadPaySkips)
+  .catch(function() { alert('Could not remove skip. Check the server log.'); });
+}
+
+loadPaySkips();
+</script>
+
+<!-- Pill popover — inline transaction editing -->
+<script>
+function openPillPopover(pill) {
+  var source = pill.dataset.source;
+  var desc   = pill.dataset.desc;
+  var amount = pill.dataset.amount;
+  var month  = pill.dataset.month;
+  var evtDate = pill.dataset.date;
+  var sid    = pill.dataset.sid;
+
+  var parts = month.split('-');
+  var monthLabel = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, 1)
+    .toLocaleString('default', {month:'long', year:'numeric'});
+
+  var amtNum = parseFloat(amount || 0);
+  var amtLabel = amount !== ''
+    ? '$' + Math.abs(amtNum).toLocaleString('en-US', {maximumFractionDigits:0})
+    : '?';
+  var amtSign = amtNum >= 0 ? '+' : '\u2212';
+
+  var sourceLabels = {
+    'monarch':   'Monarch Money',
+    'calendar':  'Google Calendar',
+    'predicted': 'AI Predicted',
+    'scenario':  'Scenario',
+  };
+  var sourceLabel = sourceLabels[source] || source;
+
+  var header = '<div class="pill-pop-header">'
+    + '<div class="pill-pop-title">' + _escHtml(desc) + '</div>'
+    + '<div class="pill-pop-meta">' + amtSign + amtLabel + ' \u00b7 ' + _escHtml(evtDate) + '</div>'
+    + '<div class="pill-pop-source">Source: ' + _escHtml(sourceLabel) + '</div>'
+    + '</div>';
+
+  // HTML-escape the JSON so double-quotes inside attribute values don't break parsing
+  var jd = _escHtml(JSON.stringify(desc));
+  var jm = _escHtml(JSON.stringify(month));
+  var ja = _escHtml(JSON.stringify(amount));
+  var js = _escHtml(JSON.stringify(sid));
+  var jdate = _escHtml(JSON.stringify(evtDate));
+
+  var body = '';
+  if (source === 'monarch' || source === 'calendar') {
+    body += '<button class="pill-pop-action" onclick="pillSkipMonth(' + jd + ',' + jm + ')">'
+      + '\u2715 Skip ' + _escHtml(monthLabel) + '</button>';
+    if (source === 'monarch') {
+      body += '<button class="pill-pop-action" onclick="pillEditOccurrence(' + jd + ',' + jdate + ',' + ja + ')">'
+        + '\u270e Edit ' + _escHtml(monthLabel) + ' amount</button>';
+      body += '<button class="pill-pop-action" onclick="pillOverrideAmountExpand(' + jd + ',' + ja + ')">'
+        + '\u270e Override Amount (all months)</button>';
+      body += '<button class="pill-pop-action danger" onclick="pillSuppress(' + jd + ')">'
+        + '\u229d Suppress Entirely</button>';
+    }
+  } else if (source === 'scenario') {
+    body += '<button class="pill-pop-action danger" onclick="pillDeleteScenario(' + js + ',' + jd + ')">'
+      + '\u2715 Delete this event</button>';
+  } else {
+    body += '<div class="pill-pop-info">Predicted by AI Analysis \u2014 re-run AI Analysis to update predictions.</div>';
+  }
+
+  document.getElementById('pillPopoverInner').innerHTML = header + body;
+
+  var pop = document.getElementById('pillPopover');
+  pop.style.display = 'block';
+  var r = pill.getBoundingClientRect();
+  var pw = pop.offsetWidth || 240;
+  var left = Math.min(r.left, window.innerWidth - pw - 12);
+  pop.style.top  = (r.bottom + 6) + 'px';
+  pop.style.left = Math.max(8, left) + 'px';
+}
+
+document.addEventListener('click', function(e) {
+  var pop = document.getElementById('pillPopover');
+  if (pop && pop.style.display !== 'none'
+      && !pop.contains(e.target) && !e.target.classList.contains('evt-pill')) {
+    pop.style.display = 'none';
+  }
+});
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') document.getElementById('pillPopover').style.display = 'none';
+});
+
+function _closePillPopover() {
+  document.getElementById('pillPopover').style.display = 'none';
+}
+
+function recalcForecast() {
+  // Fast path: reloads the page so the server recomputes from cached Monarch data
+  // (no Playwright re-fetch). Use this after any local change (skips, overrides, scenarios).
+  window.location.reload();
+}
+
+function showStaleBanner(msg) {
+  var b = document.getElementById('pillStaleBanner');
+  var m = document.getElementById('pillStaleBannerMsg');
+  if (m) m.textContent = (msg || 'Forecast is out of date') + ' \u2014';
+  if (b) b.style.display = 'flex';
+}
+
+function pillSkipMonth(desc, month) {
+  var parts = month.split('-');
+  var label = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, 1)
+    .toLocaleString('default', {month:'long', year:'numeric'});
+  if (!confirm('Skip "' + desc + '" for ' + label + '?\nThis removes only that month\'s occurrence.')) return;
+  _closePillPopover();
+  fetch('/api/payment-skips', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({name: desc, month: month, note: ''})
+  })
+  .then(function(r) { return r.json(); })
+  .then(function() { loadPaySkips(); showStaleBanner('"' + desc + '" skipped for ' + label); })
+  .catch(function() { alert('Could not save skip. Check the server log.'); });
+}
+
+function pillOverrideAmountExpand(desc, currentAmount) {
+  var sign = (parseFloat(currentAmount) >= 0) ? 1 : -1;
+  var inner = document.getElementById('pillPopoverInner');
+  var curAmt = currentAmount !== '' ? Math.abs(parseFloat(currentAmount)) : '';
+  var row = document.createElement('div');
+  row.className = 'pill-pop-amount-row';
+  row.innerHTML = '<span style="color:var(--text-secondary);font-size:0.84rem;flex-shrink:0;">$</span>'
+    + '<input id="pillAmtInput" type="number" min="0" step="1"'
+    + ' placeholder="Amount (e.g. 750)" value="' + (curAmt || '') + '" />'
+    + '<button onclick="pillOverrideAmountSave(' + _escHtml(JSON.stringify(desc)) + ',' + sign + ')">Save</button>';
+  var firstBtn = inner.querySelector('.pill-pop-action');
+  if (firstBtn) inner.insertBefore(row, firstBtn);
+  else inner.appendChild(row);
+  document.getElementById('pillAmtInput').focus();
+}
+
+function pillOverrideAmountSave(desc, sign) {
+  sign = (sign >= 0) ? 1 : -1;
+  var input = document.getElementById('pillAmtInput');
+  var val = parseFloat(input.value);
+  if (isNaN(val) || val < 0) { alert('Enter a valid positive amount.'); return; }
+  _closePillPopover();
+  fetch('/api/payment-overrides', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({name: desc, amount: val * sign, note: ''})
+  })
+  .then(function(r) { return r.json(); })
+  .then(function() { loadPayOverrides(); showStaleBanner('"' + desc + '" amount overridden'); })
+  .catch(function() { alert('Could not save override. Check the server log.'); });
+}
+
+function pillEditOccurrence(desc, date, currentAmount) {
+  var sign = (parseFloat(currentAmount) >= 0) ? 1 : -1;
+  var parts = date.split('-');
+  var label = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]))
+    .toLocaleString('default', {month:'long', day:'numeric', year:'numeric'});
+  var inner = document.getElementById('pillPopoverInner');
+  var curAmt = currentAmount !== '' ? Math.abs(parseFloat(currentAmount)) : '';
+  var row = document.createElement('div');
+  row.className = 'pill-pop-amount-row';
+  row.innerHTML = '<span style="color:var(--text-secondary);font-size:0.84rem;flex-shrink:0;">$</span>'
+    + '<input id="pillAmtInput" type="number" min="0" step="1"'
+    + ' placeholder="Amount for ' + _escHtml(label) + '" value="' + (curAmt || '') + '" />'
+    + '<button onclick="pillEditOccurrenceSave('
+    + _escHtml(JSON.stringify(desc)) + ',' + _escHtml(JSON.stringify(date)) + ',' + sign
+    + ')">Save</button>';
+  var firstBtn = inner.querySelector('.pill-pop-action');
+  if (firstBtn) inner.insertBefore(row, firstBtn);
+  else inner.appendChild(row);
+  document.getElementById('pillAmtInput').focus();
+}
+
+function pillEditOccurrenceSave(desc, date, sign) {
+  sign = (sign >= 0) ? 1 : -1;
+  var input = document.getElementById('pillAmtInput');
+  var val = parseFloat(input.value);
+  if (isNaN(val) || val < 0) { alert('Enter a valid positive amount.'); return; }
+  _closePillPopover();
+  fetch('/api/payment-monthly-amounts', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({name: desc, date: date, amount: val * sign, note: ''})
+  })
+  .then(function(r) { return r.json(); })
+  .then(function() {
+    window.location.reload();  // immediately recalculate so user sees only this occurrence changed
+  })
+  .catch(function() { alert('Could not save. Check the server log.'); });
+}
+
+function pillSuppress(desc) {
+  if (!confirm('Suppress "' + desc + '" from the entire forecast?\nThis removes all occurrences.')) return;
+  _closePillPopover();
+  fetch('/api/payment-overrides', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({name: desc, amount: 0, note: 'Suppressed via pill'})
+  })
+  .then(function(r) { return r.json(); })
+  .then(function() { loadPayOverrides(); showStaleBanner('"' + desc + '" suppressed from forecast'); })
+  .catch(function() { alert('Could not suppress. Check the server log.'); });
+}
+
+function pillDeleteScenario(sid, desc) {
+  if (!confirm('Delete scenario event "' + desc + '"?')) return;
+  if (!sid) { alert('Cannot delete: event ID missing. Use the Scenario Modeling card instead.'); return; }
+  _closePillPopover();
+  fetch('/api/scenarios', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({action: 'delete', id: sid})
+  })
+  .then(function(r) { return r.json(); })
+  .then(function() { showStaleBanner('"' + desc + '" scenario deleted'); })
+  .catch(function() { alert('Could not delete scenario. Check the server log.'); });
+}
+</script>
+
+<!-- Scenario Modeling — global scope -->
+<script>
+function loadScenarios() {
+  fetch('/api/scenarios')
+    .then(function(r) { return r.json(); })
+    .then(renderScenarios)
+    .catch(function() {});
+}
+
+function renderScenarios(data) {
+  var list = document.getElementById('scenarioList');
+  if (!list) return;
+  var freqLabels = {
+    'one-time': 'One-time', 'WEEKLY': 'Weekly', 'BIWEEKLY': 'Bi-weekly',
+    'MONTHLY': 'Monthly', 'BIMONTHLY': 'Bi-monthly', 'QUARTERLY': 'Quarterly'
+  };
+  if (!data.length) {
+    list.innerHTML = '<p style="font-size:0.82rem;color:#aeaeb2;font-style:italic;margin:10px 0 0;">'
+      + 'No scenario events. Use the form below to model a transfer, expense, or recurring spend.</p>';
+    return;
+  }
+  var html = '<table class="scenario-table"><thead><tr>'
+    + '<th>Date</th><th>Description</th><th>Amount</th><th>Frequency</th><th></th>'
+    + '</tr></thead><tbody>';
+  data.forEach(function(s) {
+    var amt = s.amount;
+    var dispAmt = (amt >= 0 ? '+$' : '\u2212$') + Math.abs(amt).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    var amtStyle = amt >= 0 ? 'color:#34c759;font-weight:500;' : 'color:#ff3b30;font-weight:500;';
+    var freqVal = s.frequency || 'one-time';
+    var freqStr = freqLabels[freqVal] || freqVal;
+    html += '<tr>'
+      + '<td>' + _escHtml(s.date) + '</td>'
+      + '<td>' + _escHtml(s.description) + '</td>'
+      + '<td style="' + amtStyle + '">' + dispAmt + '</td>'
+      + '<td style="color:#6e6e73;">' + _escHtml(freqStr) + '</td>'
+      + '<td><button class="pov-clear-btn" title="Remove scenario" '
+      + 'data-sid="' + s.id + '" '
+      + 'onclick="deleteScenario(this.dataset.sid)">&#215;</button></td>'
+      + '</tr>';
+  });
+  html += '</tbody></table>';
+  list.innerHTML = html;
+}
+
+function addScenarioEvent() {
+  var date   = document.getElementById('scnDate').value;
+  var desc   = document.getElementById('scnDesc').value.trim();
+  var amount = parseFloat(document.getElementById('scnAmount').value);
+  var sign   = parseFloat(document.getElementById('scnSign').value);
+  var freq   = document.getElementById('scnFreq').value;
+  if (!date || !desc || isNaN(amount) || amount <= 0) {
+    alert('Date, description, and a positive amount are required.');
+    return;
+  }
+  var btn = document.querySelector('#scenarioCard .scenario-form button');
+  var origText = btn.textContent;
+  btn.textContent = 'Saving\u2026';
+  btn.disabled = true;
+  fetch('/api/scenarios', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({action: 'add', date: date, description: desc, amount: amount * sign, frequency: freq})
+  })
+  .then(function(r) { return r.json(); })
+  .then(function() {
+    loadScenarios();
+    var hint = document.getElementById('scenarioRefreshHint');
+    if (hint) { hint.style.display = 'block'; clearTimeout(hint._hideTimer); }
+    btn.textContent = 'Added \u2713';
+    btn.style.background = '#34c759';
+    setTimeout(function() {
+      btn.textContent = origText;
+      btn.style.background = '';
+      btn.disabled = false;
+    }, 2000);
+  })
+  .catch(function() {
+    btn.textContent = 'Error \u2014 try again';
+    btn.style.background = '#ff3b30';
+    btn.disabled = false;
+    setTimeout(function() { btn.textContent = origText; btn.style.background = ''; }, 3000);
+  });
+}
+
+function deleteScenario(id) {
+  if (!confirm('Remove this scenario event?')) return;
+  fetch('/api/scenarios', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({action: 'delete', id: id})
+  })
+  .then(function(r) { return r.json(); })
+  .then(function() {
+    loadScenarios();
+    var hint = document.getElementById('scenarioRefreshHint');
+    if (hint) { hint.style.display = 'block'; clearTimeout(hint._hideTimer); }
+  })
+  .catch(function() { alert('Could not remove scenario. Check the server log.'); });
+}
+
+function clearAllScenarios() {
+  if (!confirm('Remove ALL scenario events and revert to the baseline forecast?')) return;
+  fetch('/api/scenarios', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({action: 'clear'})
+  })
+  .then(function(r) { return r.json(); })
+  .then(function() { window.location.href = '/refresh'; })
+  .catch(function() { alert('Could not clear scenarios. Check the server log.'); });
+}
+
+loadScenarios();
+</script>
+
+<!-- Dashboard AI run button — global scope -->
+<script>
+if (typeof _dashAiPollInterval === 'undefined') var _dashAiPollInterval = null;
+
+// ── Session token counter ─────────────────────────────────────────────────────
+function _updateAiSessionDisplay() {
+  var session = JSON.parse(sessionStorage.getItem('_aiSession') || 'null');
+  var el = document.getElementById('aiTokenMeta');
+  if (!el || !session || session.runs === 0) return;
+  var label = session.runs === 1 ? '1 AI run' : session.runs + ' AI runs';
+  el.textContent = 'Session: ' + (session.in / 1000).toFixed(1) + 'k\u202fin'
+    + ' / ' + (session.out / 1000).toFixed(1) + 'k\u202fout'
+    + ' / $' + session.cost.toFixed(4)
+    + ' \u00b7 ' + label;
+  el.style.display = '';
+}
+
+// Restore counter on page load if this session already has runs
+_updateAiSessionDisplay();
+
+function dashRunAiAnalysis() {
+  var btn = document.getElementById('dashRunAiBtn');
+  if (!btn) return;
+  btn.textContent = 'Running\u2026';
+  btn.disabled = true;
+  btn.style.color = '#ff9500';
+
+  // Pulse the AI panel border to signal live background activity
+  var aiPanel = document.getElementById('aiPanel');
+  if (aiPanel) aiPanel.classList.add('running');
+
+  // Disable the split button's AI option while running
+  var refreshForecastBtn = document.getElementById('refreshForecastBtn');
+  if (refreshForecastBtn) refreshForecastBtn.disabled = true;
+
+  fetch('/api/run-ai-analysis', { method: 'POST' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data.ok) {
+        btn.textContent = data.error || 'Error';
+        btn.style.color = '#ff3b30';
+        btn.disabled = false;
+        if (aiPanel) aiPanel.classList.remove('running');
+        if (refreshForecastBtn) refreshForecastBtn.disabled = false;
+        return;
+      }
+      // Poll until done — clear any existing interval first to avoid orphaned polls
+      if (_dashAiPollInterval) { clearInterval(_dashAiPollInterval); _dashAiPollInterval = null; }
+      _dashAiPollInterval = setInterval(function() {
+        fetch('/api/ai-analysis-status')
+          .then(function(r) { return r.json(); })
+          .then(function(s) {
+            if (!s.running) {
+              clearInterval(_dashAiPollInterval);
+              if (aiPanel) aiPanel.classList.remove('running');
+              if (refreshForecastBtn) refreshForecastBtn.disabled = false;
+              btn.textContent = '\u2713 Done \u2014 reloading\u2026';
+              btn.style.color = '#34c759';
+              // Reload the AI insights panel without a full page refresh
+              setTimeout(function() {
+                fetch('/api/ai-insights')
+                  .then(function(r) {
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    return r.json();
+                  })
+                  .then(function(insights) {
+                    renderAiInsights(insights);
+                    btn.textContent = '\u25b6 Refresh AI';
+                    btn.style.color = '';
+                    btn.disabled = false;
+                  })
+                  .catch(function() {
+                    // Insights fetch failed — let user reload manually
+                    btn.textContent = '\u25b6 Refresh AI';
+                    btn.style.color = '';
+                    btn.disabled = false;
+                    window.location.reload();
+                  });
+              }, 1000);
+            }
+          });
+      }, 5000);
+    })
+    .catch(function() {
+      btn.textContent = 'Error';
+      btn.style.color = '#ff3b30';
+      btn.disabled = false;
+      if (aiPanel) aiPanel.classList.remove('running');
+      if (refreshForecastBtn) refreshForecastBtn.disabled = false;
+    });
+}
+</script>
+
+{% endif %}
+
+<!-- Transaction pill action popover -->
+<div id="pillPopover" style="display:none;">
+  <div id="pillPopoverInner"></div>
+</div>
+
+<!-- Stale-forecast bottom banner (shown after any pill action) -->
+<div id="pillStaleBanner" style="display:none;">
+  <span id="pillStaleBannerMsg">Change saved —</span>
+  <a href="javascript:void(0)" onclick="recalcForecast()">↻ Recalculate</a>
+  <button class="pill-banner-dismiss"
+          onclick="document.getElementById('pillStaleBanner').style.display='none'"
+          title="Dismiss">&#215;</button>
+</div>
+</main>
+
+<!-- Loading overlay — shown while forecast refresh navigates to /refresh -->
+<div id="refreshOverlay">
+  <div class="refresh-spinner"></div>
+  <p>Fetching latest data from Monarch…</p>
+  <small>This can take a few minutes — sit tight, the page will reload on its own.</small>
+</div>
+
+<script>
+// ── Refresh split button ──────────────────────────────────────────────────────
+function refreshForecast() {
+  closeRefreshMenu();
+  document.getElementById('refreshOverlay').style.display = 'flex';
+  // Short delay so the overlay paints before the browser begins navigation
+  setTimeout(function() { window.location.href = '/refresh'; }, 80);
+}
+
+function toggleRefreshMenu(e) {
+  e.stopPropagation();
+  var menu = document.getElementById('refreshMenu');
+  menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+}
+
+function closeRefreshMenu() {
+  var menu = document.getElementById('refreshMenu');
+  if (menu) menu.style.display = 'none';
+}
+
+// Close menu when user clicks anywhere outside the split button
+document.addEventListener('click', function(e) {
+  var wrap = document.getElementById('refreshSplitWrap');
+  if (wrap && !wrap.contains(e.target)) closeRefreshMenu();
+});
+
+// ── Theme toggle ──────────────────────────────────────────────────────────────
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('theme', theme);
+  var btn = document.getElementById('themeToggle');
+  if (btn) btn.textContent = theme === 'dark' ? '☀' : '🌙';
+}
+function toggleTheme() {
+  var cur = document.documentElement.getAttribute('data-theme') || 'light';
+  applyTheme(cur === 'dark' ? 'light' : 'dark');
+}
+// Initialize toggle icon on load
+(function() {
+  var t = localStorage.getItem('theme') || 'light';
+  var btn = document.getElementById('themeToggle');
+  if (btn) btn.textContent = t === 'dark' ? '☀' : '🌙';
+})();
+</script>
+
+{% if auto_refresh and not data %}
+<script>
+  // No cached data yet — auto-start the first forecast fetch
+  window.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('refreshOverlay').style.display = 'flex';
+    setTimeout(function() { window.location.href = '/refresh'; }, 300);
+  });
+</script>
+{% endif %}
+
+<footer style="text-align:center;padding:16px 24px 24px;font-size:0.75rem;color:var(--text-tertiary);border-top:1px solid var(--border);margin-top:8px;">
+  <div style="margin-bottom:4px;">Unofficial tool — not affiliated with or endorsed by Monarch Money &nbsp;·&nbsp; Your data never leaves this device</div>
+  Created by <a href="mailto:github@vendaface.org" style="color:var(--text-secondary);text-decoration:none;">Vendaface</a>
+  with <a href="https://claude.ai/code" style="color:var(--text-secondary);text-decoration:none;">Claude Code</a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/vendaface/balance-forecast" style="color:var(--text-secondary);text-decoration:none;">GitHub</a>
+</footer>
+
+</body>
+</html>

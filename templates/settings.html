@@ -1,0 +1,1419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings — Account Balance Forecast for Monarch Money</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <script>(function(){var t=localStorage.getItem('theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+  <style>
+    /* ── Theme variables ────────────────────────────────────────────────── */
+    :root {
+      --bg: #f5f5f7;
+      --surface: #ffffff;
+      --surface-2: #f5f5f7;
+      --surface-3: #fafafa;
+      --border: #e0e0e5;
+      --border-light: #f0f0f5;
+      --border-input: #d2d2d7;
+      --text: #1d1d1f;
+      --text-secondary: #6e6e73;
+      --text-tertiary: #aeaeb2;
+      --text-mid: #3a3a3c;
+      --header-bg: #ffffff;
+      --info-bg: #f0f7ff;
+      --info-text: #0050a0;
+      --info-code-bg: #ddeeff;
+      --warn-box-bg: #fff8e1;
+      --warn-box-text: #7a5800;
+      --sens-configured-bg: #edfbf0;
+      --sens-configured-text: #1a7f37;
+      --sens-unconfigured-bg: #fff3cd;
+      --sens-unconfigured-text: #856404;
+    }
+    [data-theme="dark"] {
+      --bg: #000000;
+      --surface: #1c1c1e;
+      --surface-2: #2c2c2e;
+      --surface-3: #1c1c1e;
+      --border: #3a3a3c;
+      --border-light: #2c2c2e;
+      --border-input: #48484a;
+      --text: #f5f5f7;
+      --text-secondary: #aeaeb2;
+      --text-tertiary: #636366;
+      --text-mid: #d1d1d6;
+      --header-bg: #1c1c1e;
+      --info-bg: #00264a;
+      --info-text: #5aadff;
+      --info-code-bg: #003d7a;
+      --warn-box-bg: #2d2200;
+      --warn-box-text: #ffd60a;
+      --sens-configured-bg: #001a00;
+      --sens-configured-text: #30d158;
+      --sens-unconfigured-bg: #2d2200;
+      --sens-unconfigured-text: #ffd60a;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--header-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header h1 { font-size: 1.25rem; font-weight: 600; }
+    .back-link {
+      color: #0071e3;
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+    .back-link:hover { text-decoration: underline; }
+
+    main { max-width: 760px; margin: 0 auto; padding: 32px 24px; }
+
+    /* Cards */
+    .settings-card {
+      background: var(--surface);
+      border-radius: 14px;
+      padding: 24px 28px;
+      margin-bottom: 24px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    }
+    .settings-card h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .card-desc {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-bottom: 20px;
+    }
+
+    /* Form rows */
+    .field-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .field-label {
+      width: 200px;
+      flex-shrink: 0;
+      font-size: 0.875rem;
+      font-weight: 500;
+      padding-top: 7px;
+    }
+    .field-hint {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-top: 2px;
+      font-weight: 400;
+    }
+    .field-control { flex: 1; }
+    .input-dollar { position: relative; display: inline-flex; align-items: center; flex: 1; min-width: 0; }
+    .input-dollar::before { content: '$'; position: absolute; left: 8px;
+      color: var(--text-secondary); font-size: 0.84rem; pointer-events: none; }
+    .input-dollar input { padding-left: 24px; width: 100%; box-sizing: border-box; }
+
+    /* Inputs */
+    input[type="text"], input[type="number"], input[type="password"],
+    input[type="url"], select, textarea {
+      width: 100%;
+      padding: 7px 11px;
+      border: 1px solid var(--border-input);
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--surface);
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #0071e3;
+      box-shadow: 0 0 0 3px rgba(0,113,227,0.15);
+    }
+    input[type="number"] { max-width: 120px; }
+    textarea { resize: vertical; line-height: 1.5; font-size: 0.82rem; font-family: "SF Mono", "Menlo", monospace; }
+
+    /* Toggle */
+    .toggle-wrap { display: flex; align-items: center; gap: 10px; padding-top: 6px; }
+    .toggle {
+      position: relative; width: 44px; height: 24px;
+      flex-shrink: 0;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0;
+      background: #c7c7cc; border-radius: 24px; cursor: pointer;
+      transition: background 0.2s;
+    }
+    .toggle-slider::before {
+      content: "";
+      position: absolute;
+      width: 20px; height: 20px;
+      left: 2px; top: 2px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .toggle input:checked + .toggle-slider { background: #34c759; }
+    .toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
+    .toggle-label { font-size: 0.875rem; }
+
+    /* Sensitive field badge + reveal */
+    .sensitive-wrap { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .sens-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+    .sens-badge.configured { background: var(--sens-configured-bg); color: var(--sens-configured-text); }
+    .sens-badge.not_configured { background: var(--sens-unconfigured-bg); color: var(--sens-unconfigured-text); }
+    .change-btn {
+      background: none;
+      border: 1px solid var(--border-input);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      color: var(--text-secondary);
+    }
+    .change-btn:hover { background: var(--surface-2); color: var(--text); }
+    [data-theme="dark"] .change-btn { color: var(--text-mid); border-color: var(--border); }
+    .sens-input-wrap {
+      display: none;
+      width: 100%;
+      margin-top: 6px;
+    }
+
+    /* Divider */
+    .section-divider {
+      border: none;
+      border-top: 1px solid var(--border-light);
+      margin: 20px 0;
+    }
+
+    /* Save button */
+    .save-btn {
+      background: #0071e3;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 20px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      margin-top: 4px;
+      transition: background 0.15s;
+    }
+    .save-btn:hover { background: #0077ed; }
+    .save-btn:disabled { opacity: 0.6; cursor: default; }
+
+    /* Info box */
+    .info-box {
+      background: var(--info-bg);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 0.8rem;
+      color: var(--info-text);
+      margin-top: 4px;
+    }
+    .info-box code {
+      background: var(--info-code-bg);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-family: "SF Mono", "Menlo", monospace;
+      font-size: 0.78rem;
+    }
+
+    /* Action buttons */
+    .run-btn {
+      padding: 7px 16px;
+      background: #34c759;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: background 0.15s;
+    }
+    .run-btn:hover { background: #2fb350; }
+    .run-btn:disabled { opacity: 0.6; cursor: default; }
+    .danger-btn { background: #ff9500; padding: 8px 20px; }
+    .danger-btn:hover { background: #e08700; }
+
+    /* Warning box */
+    .warn-box {
+      background: var(--warn-box-bg);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 0.8rem;
+      color: var(--warn-box-text);
+      margin-top: 12px;
+    }
+
+    /* AI status row */
+    .ai-status-row {
+      background: var(--surface-2);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 0.82rem;
+      color: var(--text-mid);
+      margin-top: 4px;
+    }
+    .ai-status-row span { color: var(--text-secondary); font-size: 0.78rem; }
+
+    /* ── First-run setup mode ─────────────────────────────────────────── */
+    .setup-banner {
+      background: linear-gradient(135deg, #0071e3 0%, #34c759 100%);
+      color: #fff;
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 24px;
+    }
+    .setup-banner h2 { font-size: 1.05rem; font-weight: 600; margin-bottom: 6px; color: #fff; }
+    .setup-banner ol { font-size: 0.85rem; opacity: 0.92; padding-left: 18px; margin: 8px 0 0; }
+    .setup-banner ol li { margin-bottom: 4px; }
+    .card-required {
+      border: 2px solid #0071e3 !important;
+      box-shadow: 0 0 0 3px rgba(0,113,227,0.12);
+    }
+    [data-theme="dark"] .card-required {
+      border-color: #5aadff !important;
+      box-shadow: 0 0 0 3px rgba(90,173,255,0.15);
+    }
+    .setup-step-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #0071e3;
+      color: #fff;
+      border-radius: 20px;
+      padding: 3px 10px 3px 4px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      margin-left: 10px;
+      vertical-align: middle;
+    }
+    .setup-step-badge .step-num {
+      background: #fff;
+      color: #0071e3;
+      border-radius: 50%;
+      width: 16px; height: 16px;
+      display: inline-flex;
+      align-items: center; justify-content: center;
+      font-size: 0.65rem; font-weight: 700;
+    }
+    .setup-step-badge.optional { background: #8e8e93; }
+    .setup-step-badge.optional .step-num { color: #8e8e93; }
+
+    .monarch-section-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin: 20px 0 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .monarch-section-label:first-of-type { margin-top: 4px; }
+
+    /* Inline spinner for account fetch */
+    @keyframes _spinRing { to { transform: rotate(360deg); } }
+    .inline-spinner {
+      display: inline-block;
+      width: 13px; height: 13px;
+      border: 2px solid var(--border-input);
+      border-top-color: #0071e3;
+      border-radius: 50%;
+      animation: _spinRing 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+      flex-shrink: 0;
+    }
+
+    .setup-go-btn {
+      display: inline-block;
+      padding: 12px 32px;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background 0.2s, opacity 0.2s, transform 0.1s;
+      cursor: default;
+      background: var(--border-light);
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+    .setup-go-btn--disabled { opacity: 0.5; }
+    .setup-go-btn:not(.setup-go-btn--disabled) {
+      background: #30d158;
+      color: #fff;
+      cursor: pointer;
+      pointer-events: auto;
+      box-shadow: 0 2px 12px rgba(48,209,88,0.35);
+    }
+    .setup-go-btn:not(.setup-go-btn--disabled):hover {
+      background: #25a244;
+      transform: translateY(-1px);
+    }
+    @media (prefers-color-scheme: dark) {
+      .setup-go-btn:not(.setup-go-btn--disabled) {
+        box-shadow: 0 2px 16px rgba(48,209,88,0.25);
+      }
+    }
+    @keyframes goBtnPulse {
+      0%   { box-shadow: 0 2px 12px rgba(48,209,88,0.35); }
+      50%  { box-shadow: 0 0 0 10px rgba(48,209,88,0.12); }
+      100% { box-shadow: 0 2px 12px rgba(48,209,88,0.35); }
+    }
+    .setup-go-btn--pulse {
+      animation: goBtnPulse 0.9s ease-in-out 3;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>⚙ Settings</h1>
+    <div style="font-size:0.72rem;color:var(--text-secondary);margin-top:1px;">Account Balance Forecast for Monarch Money</div>
+    <span id="aiTokenMeta" class="back-link" style="display:none;font-size:0.72rem;color:var(--text-secondary);margin-top:2px;font-weight:normal;"></span>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center;">
+    <button id="themeToggle" class="back-link" onclick="toggleTheme()" title="Toggle dark/light mode" style="background:none;border:1px solid var(--border-input);border-radius:8px;padding:5px 10px;font-size:1rem;cursor:pointer;color:var(--text-secondary);">🌙</button>
+    {% if setup_mode %}
+    <span id="backToDashboard" class="back-link" style="opacity:0.45;cursor:default;font-size:0.82rem;"
+          title="Still needed: {{ setup_status.missing | join(' · ') }}">← Dashboard
+      {% if setup_status.missing %}<span style="font-size:0.72rem;opacity:0.85;">(need: {{ setup_status.missing | join(', ') }})</span>{% endif %}
+    </span>
+    {% else %}
+    <a href="/" class="back-link">← Back to Dashboard</a>
+    {% endif %}
+  </div>
+</header>
+
+<main>
+
+{% if setup_mode %}
+<div class="setup-banner">
+  <h2>Welcome to Balance Forecast — let's get you set up</h2>
+  <ol>
+    <li><strong>Monarch Connection</strong> — click "Connect to Monarch", log in when prompted, then select your primary checking account</li>
+    <li><strong>AI Insights</strong> — optional: add an API key to enable AI analysis</li>
+    <li><strong>Forecast Settings</strong> — optional: defaults work great to start</li>
+  </ol>
+  <div style="display:flex;gap:20px;margin-top:14px;font-size:0.83rem;flex-wrap:wrap;">
+    <span class="setup-checklist-item">{% if setup_status.account_ok %}✅{% else %}⬜{% endif %} Account selected</span>
+  </div>
+  <div style="margin-top:18px;text-align:center;">
+    <a id="goToDashboardBtn" href="/?autorefresh=1"
+       class="setup-go-btn{% if not setup_status.complete %} setup-go-btn--disabled{% endif %}"
+       onclick="if(this.classList.contains('setup-go-btn--disabled'))return false; this.textContent='Opening\u2026'; this.style.opacity='0.6'; return true;"
+       {% if not setup_status.complete %}aria-disabled="true"{% endif %}>
+      Go to Dashboard →
+    </a>
+    <div id="goToDashboardHint" style="margin-top:6px;font-size:0.78rem;color:var(--text-secondary);">
+      {% if setup_status.complete %}Setup complete — click to open the dashboard{% else %}Complete the steps above first{% endif %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ── Monarch Connection ─────────────────────────────────────────────── -->
+<div class="settings-card{% if setup_mode %} card-required{% endif %}">
+  <h2>Monarch Connection{% if setup_mode %}<span class="setup-step-badge"><span class="step-num">1</span>Required</span>{% endif %}</h2>
+  <p class="card-desc">Connect to Monarch to authorize access, then select your primary checking account for bill pay forecasting.</p>
+
+  <div class="monarch-section-label">Step 1 — Connect to Monarch</div>
+
+  <div class="field-row">
+    <div class="field-label">Authorization</div>
+    <div class="field-control">
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="change-btn" id="loadAccountsBtn" onclick="loadMonarchAccounts()" style="white-space:nowrap;">
+          {% if setup_status.account_ok %}Refresh Connection{% else %}Connect to Monarch{% endif %}
+        </button>
+      </div>
+      <div class="field-hint" style="margin-top:6px;">
+        A Chrome window will open — log in to Monarch when prompted. Closes automatically when done (~30–60 seconds).
+      </div>
+      <div id="accountsStatus" class="info-box" style="margin-top:6px;display:none;"></div>
+    </div>
+  </div>
+
+  <div class="monarch-section-label">Step 2 — Select your bill pay account</div>
+
+  <div class="field-row">
+    <div class="field-label">
+      Primary Account
+      <div class="field-hint">The account used for bill payments and balance forecasting</div>
+    </div>
+    <div class="field-control">
+      <select id="checkingAccountId" style="width:100%;">
+        <option value="{{ config.monarch.checking_account_id | default('') }}">
+          {{ config.monarch.checking_account_name | default(config.monarch.checking_account_id) | default('(not set — click Connect to Monarch first)') }}
+        </option>
+      </select>
+    </div>
+  </div>
+
+  <button class="save-btn" id="saveMonarchBtn" onclick="saveSection('monarch')">Save Monarch Settings</button>
+</div>
+
+<!-- ── AI Insights ───────────────────────────────────────────────────── -->
+<div class="settings-card">
+  <h2>AI Insights{% if setup_mode %}<span class="setup-step-badge optional"><span class="step-num">2</span>Optional</span>{% endif %}</h2>
+  <p class="card-desc">AI-powered seasonal pattern detection, predicted expenses, and transfer recommendations. Supports Anthropic Claude, OpenAI GPT, and Google Gemini.</p>
+
+  <script>
+    var _savedAiModel = "{{ config.ai.model | default('claude-sonnet-4-5') }}";
+    var _AI_MODELS = {
+      anthropic: ['claude-opus-4-5','claude-sonnet-4-5','claude-haiku-4-5','claude-opus-4','claude-sonnet-4'],
+      openai:    ['gpt-4o','gpt-4o-mini','o3-mini','gpt-4-turbo'],
+      google:    ['gemini-2.0-flash','gemini-1.5-pro','gemini-1.5-flash'],
+    };
+    function updateAiProviderUI() {
+      var provider = document.getElementById('aiProvider').value;
+      var sel = document.getElementById('aiModel');
+      sel.innerHTML = '';
+      (_AI_MODELS[provider] || []).forEach(function(m) {
+        var o = document.createElement('option');
+        o.value = m; o.textContent = m;
+        if (m === _savedAiModel) o.selected = true;
+        sel.appendChild(o);
+      });
+      document.getElementById('anthropicKeyRow').style.display = provider === 'anthropic' ? '' : 'none';
+      document.getElementById('openaiKeyRow').style.display    = provider === 'openai'    ? '' : 'none';
+      document.getElementById('googleKeyRow').style.display    = provider === 'google'    ? '' : 'none';
+    }
+  </script>
+
+  <div class="field-row">
+    <div class="field-label">Enable AI</div>
+    <div class="field-control">
+      <div class="toggle-wrap">
+        <label class="toggle">
+          <input type="checkbox" id="aiEnabled" {% if config.ai.enabled %}checked{% endif %}>
+          <span class="toggle-slider"></span>
+        </label>
+        <span class="toggle-label">Generate AI insights when "Run AI Analysis" is triggered</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="field-row">
+    <div class="field-label">
+      AI Provider
+      <div class="field-hint">Service used for analysis</div>
+    </div>
+    <div class="field-control">
+      <select id="aiProvider" onchange="updateAiProviderUI()">
+        {% set cur_provider = config.ai.provider | default('anthropic') %}
+        <option value="anthropic" {% if cur_provider == 'anthropic' %}selected{% endif %}>Anthropic (Claude)</option>
+        <option value="openai"    {% if cur_provider == 'openai'    %}selected{% endif %}>OpenAI (GPT)</option>
+        <option value="google"    {% if cur_provider == 'google'    %}selected{% endif %}>Google (Gemini)</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="field-row">
+    <div class="field-label">
+      Model
+      <div class="field-hint">Model name for the selected provider</div>
+    </div>
+    <div class="field-control">
+      <select id="aiModel"><!-- populated by updateAiProviderUI() --></select>
+    </div>
+  </div>
+
+  <div class="field-row">
+    <div class="field-label">
+      Transaction History
+      <div class="field-hint">Months fetched for seasonal analysis</div>
+    </div>
+    <div class="field-control">
+      <input type="number" id="historyMonths" min="1" max="60"
+             value="{{ config.ai.history_months | default(13) }}" />
+    </div>
+  </div>
+
+  <div class="field-row">
+    <div class="field-label">
+      Insights Freshness
+      <div class="field-hint">Hours before insights marked "stale"</div>
+    </div>
+    <div class="field-control">
+      <input type="number" id="maxAgeHours" min="1" max="720"
+             value="{{ config.ai.insights_max_age_hours | default(26) }}" />
+    </div>
+  </div>
+
+  <!-- Anthropic API key -->
+  <div id="anthropicKeyRow" class="field-row">
+    <div class="field-label">
+      Anthropic API Key
+      <div class="field-hint">Required for Claude models</div>
+    </div>
+    <div class="field-control">
+      <div class="sensitive-wrap">
+        <span class="sens-badge {{ env_status.ANTHROPIC_API_KEY }}">
+          {% if env_status.ANTHROPIC_API_KEY == 'configured' %}✓ Configured{% else %}✗ Not configured{% endif %}
+        </span>
+        <button class="change-btn" onclick="toggleSensInput(this)">Change</button>
+      </div>
+      <div class="sens-input-wrap">
+        <input type="password" id="anthropicApiKey" placeholder="sk-ant-…" autocomplete="off" onkeydown="_sensKeydown(event,'ai')" />
+      </div>
+    </div>
+  </div>
+
+  <!-- OpenAI API key -->
+  <div id="openaiKeyRow" class="field-row" style="display:none;">
+    <div class="field-label">
+      OpenAI API Key
+      <div class="field-hint">Required for GPT models</div>
+    </div>
+    <div class="field-control">
+      <div class="sensitive-wrap">
+        <span class="sens-badge {{ env_status.OPENAI_API_KEY }}">
+          {% if env_status.OPENAI_API_KEY == 'configured' %}✓ Configured{% else %}✗ Not configured{% endif %}
+        </span>
+        <button class="change-btn" onclick="toggleSensInput(this)">Change</button>
+      </div>
+      <div class="sens-input-wrap">
+        <input type="password" id="openaiApiKey" placeholder="sk-…" autocomplete="off" onkeydown="_sensKeydown(event,'ai')" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Google API key -->
+  <div id="googleKeyRow" class="field-row" style="display:none;">
+    <div class="field-label">
+      Google API Key
+      <div class="field-hint">Required for Gemini models</div>
+    </div>
+    <div class="field-control">
+      <div class="sensitive-wrap">
+        <span class="sens-badge {{ env_status.GOOGLE_API_KEY }}">
+          {% if env_status.GOOGLE_API_KEY == 'configured' %}✓ Configured{% else %}✗ Not configured{% endif %}
+        </span>
+        <button class="change-btn" onclick="toggleSensInput(this)">Change</button>
+      </div>
+      <div class="sens-input-wrap">
+        <input type="password" id="googleApiKey" placeholder="AIza…" autocomplete="off" onkeydown="_sensKeydown(event,'ai')" />
+      </div>
+    </div>
+  </div>
+
+  {% if insights_meta.generated_at %}
+  <div class="ai-status-row">
+    <strong>Last generated:</strong>
+    {{ insights_meta.generated_at[:19] | replace('T', ' at ') }}
+    {% if insights_meta.token_usage %}
+    &nbsp;·&nbsp;
+    {{ "%.1f"|format(insights_meta.token_usage.input_tokens / 1000) }}k in /
+    {{ "%.1f"|format(insights_meta.token_usage.output_tokens / 1000) }}k out /
+    ${{ "%.4f"|format(insights_meta.token_usage.cost_usd) }}
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="ai-status-row"><span>No insights generated yet. Click "Run AI Analysis" below to generate them.</span></div>
+  {% endif %}
+
+  <hr class="section-divider">
+
+  <div class="field-row" style="margin-bottom:0;">
+    <div class="field-label" style="padding-top:0;">
+      Run AI Analysis
+      <div class="field-hint">Fetches your latest data and generates new insights — may take a few minutes</div>
+    </div>
+    <div class="field-control">
+      <button class="run-btn" id="runAiBtn" onclick="runAiAnalysis()">▶ Run AI Analysis</button>
+      <div id="aiRunStatus" class="info-box" style="margin-top:8px;display:none;"></div>
+      <div id="aiRunLog" style="display:none;font-size:0.72rem;font-family:monospace;background:#f5f5f7;border:1px solid #e0e0e5;border-radius:6px;padding:8px 10px;margin-top:6px;max-height:180px;overflow-y:auto;color:#3a3a3c;white-space:pre-wrap;line-height:1.5;"></div>
+    </div>
+  </div>
+
+  <button class="save-btn" id="saveAiBtn" onclick="saveSection('ai')" style="margin-top:20px;">Save AI Settings</button>
+</div>
+
+<!-- ── Forecast Settings ──────────────────────────────────────────────── -->
+<div class="settings-card">
+  <h2>Forecast Settings{% if setup_mode %}<span class="setup-step-badge optional"><span class="step-num">3</span>Optional</span>{% endif %}</h2>
+  <p class="card-desc">Controls the balance projection shown on the dashboard.</p>
+
+  <div class="field-row">
+    <div class="field-label">
+      Forecast Horizon
+      <div class="field-hint">Days to project forward</div>
+    </div>
+    <div class="field-control">
+      <input type="number" id="horizonDays" min="7" max="365"
+             value="{{ config.forecast.horizon_days | default(45) }}" />
+    </div>
+  </div>
+
+  <div class="field-row">
+    <div class="field-label">
+      Buffer Threshold
+      <div class="field-hint">Warn when balance drops below this</div>
+    </div>
+    <div class="field-control">
+      <div class="input-dollar" style="max-width:160px;">
+        <input type="number" id="bufferThreshold" min="0" step="100"
+               value="{{ config.forecast.buffer_threshold | default(1500) }}" />
+      </div>
+    </div>
+  </div>
+
+  <button class="save-btn" id="saveForecastBtn" onclick="saveSection('forecast')">Save Forecast Settings</button>
+</div>
+
+<!-- ── Calendar Integration ───────────────────────────────────────────── -->
+<div class="settings-card">
+  <h2>Calendar Integration</h2>
+  <p class="card-desc">Optionally overlay calendar bill events onto the forecast. Disable if you prefer Monarch recurring data only (simpler, no dedup needed).</p>
+
+  <div class="field-row">
+    <div class="field-label">Enable Calendar</div>
+    <div class="field-control">
+      <div class="toggle-wrap">
+        <label class="toggle">
+          <input type="checkbox" id="calendarEnabled" {% if config.calendar.enabled %}checked{% endif %}>
+          <span class="toggle-slider"></span>
+        </label>
+        <span class="toggle-label">Fetch events from your calendar (ICS format)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="field-row">
+    <div class="field-label">
+      Calendar Service
+      <div class="field-hint">Your calendar provider</div>
+    </div>
+    <div class="field-control">
+      <select id="calendarService" onchange="updateCalendarHelp()">
+        {% set svc = config.calendar.service | default('google') %}
+        <option value="google" {% if svc == 'google' %}selected{% endif %}>Google Calendar</option>
+        <option value="icloud" {% if svc == 'icloud' %}selected{% endif %}>Apple iCloud</option>
+        <option value="proton" {% if svc == 'proton' %}selected{% endif %}>Proton Calendar</option>
+        <option value="other"  {% if svc == 'other'  %}selected{% endif %}>Other (any ICS URL)</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="field-row">
+    <div class="field-label">
+      ICS URL
+      <div class="field-hint">Calendar feed address (contains auth token)</div>
+    </div>
+    <div class="field-control">
+      <div class="sensitive-wrap">
+        <span class="sens-badge {{ 'configured' if config.calendar.ics_url else 'not_configured' }}">
+          {% if config.calendar.ics_url %}✓ Configured{% else %}✗ Not configured{% endif %}
+        </span>
+        <button class="change-btn" onclick="toggleSensInput(this)">Change</button>
+      </div>
+      <div class="sens-input-wrap">
+        <input type="url" id="calendarIcsUrl" placeholder="https://…" autocomplete="off" />
+      </div>
+      <div id="calendarHelp" class="info-box" style="margin-top:6px;"></div>
+    </div>
+  </div>
+
+  <button class="save-btn" id="saveCalendarBtn" onclick="saveSection('calendar')">Save Calendar Settings</button>
+</div>
+
+<!-- ── User Context & AI Corrections ─────────────────────────────────── -->
+<div class="settings-card">
+  <h2>User Context &amp; AI Corrections</h2>
+  <p class="card-desc">Facts and corrections injected into every AI analysis. Use this to override incorrect inferences — e.g., payment timing, known pauses, account quirks.</p>
+
+  <textarea id="userContext" rows="16">{{ user_context }}</textarea>
+
+  <button class="save-btn" id="saveContextBtn" onclick="saveSection('user-context')" style="margin-top:12px;">Save Context</button>
+</div>
+
+<!-- ── App Server ─────────────────────────────────────────────────────── -->
+<div class="settings-card">
+  <h2>App Server</h2>
+  <p class="card-desc">Local server configuration.</p>
+
+  <div class="field-row">
+    <div class="field-label">
+      Port
+      <div class="field-hint">Default: 5002</div>
+    </div>
+    <div class="field-control">
+      <input type="number" id="appPort" min="1024" max="65535"
+             value="{{ config.app.port | default(5002) }}" />
+    </div>
+  </div>
+
+  <div class="field-row">
+    <div class="field-label">Debug Mode</div>
+    <div class="field-control">
+      <div class="toggle-wrap">
+        <label class="toggle">
+          <input type="checkbox" id="appDebug" {% if config.app.debug %}checked{% endif %}>
+          <span class="toggle-slider"></span>
+        </label>
+        <span class="toggle-label">Enable Flask debug mode (verbose errors)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="warn-box">⚠ Port and debug changes require a server restart to take effect.</div>
+
+  <div style="margin-top:16px;">
+    <button class="save-btn" id="saveAppBtn" onclick="saveSection('app')" style="margin-top:0;">Save App Settings</button>
+  </div>
+
+  <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border-light);">
+    <h3 style="font-size:0.85rem;font-weight:600;margin:0 0 12px;color:var(--text-secondary);">Server Actions</h3>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;">
+
+      <div style="flex:1;min-width:160px;">
+        <p class="field-hint" style="margin:0 0 8px;">Reloads the server process. All data and settings are preserved.</p>
+        <button class="run-btn" id="restartBtn" onclick="restartServer()">↺ Restart Server</button>
+        <div id="restartStatus" class="info-box" style="margin-top:8px;display:none;"></div>
+      </div>
+
+      <div style="flex:1;min-width:160px;">
+        <p class="field-hint" style="margin:0 0 8px;">Deletes all credentials and data, then returns to first-time setup. Cannot be undone.</p>
+        <button class="run-btn danger-btn" id="factoryResetBtn"
+                onclick="factoryReset()" style="background:#ff3b30;">&#128465; Reset to Factory Defaults</button>
+        <div id="factoryResetStatus" class="info-box" style="margin-top:8px;display:none;"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ── Privacy & Disclaimer ───────────────────────────────────────────── -->
+<div class="settings-card" style="border-color:var(--border);background:var(--surface-secondary,var(--surface));">
+  <h2 style="font-size:0.95rem;">Privacy &amp; Disclaimer</h2>
+
+  <div style="font-size:0.82rem;line-height:1.65;color:var(--text-secondary);display:flex;flex-direction:column;gap:12px;">
+
+    <p style="margin:0;padding:8px 12px;background:rgba(255,149,0,0.08);border-left:3px solid #ff9500;border-radius:6px;color:var(--text);font-size:0.83rem;">
+      <strong>Unofficial tool</strong> — not affiliated with, endorsed by, or sponsored by Monarch Money, Inc.
+      Use at your own risk. Support comes from the individual creator, not from Monarch.
+    </p>
+
+    <div>
+      <strong style="color:var(--text);font-size:0.83rem;">Your data never leaves this device</strong><br>
+      No Monarch credentials are stored on this computer. Only API keys for AI providers are stored in .env.
+      The app connects to only two destinations on your behalf:
+      <ul style="margin:6px 0 0 16px;padding:0;">
+        <li><strong>Monarch's servers</strong> — to fetch your account data, using your own login session</li>
+        <li><strong>Your AI provider's API</strong> — only if you enable AI Insights and add an API key</li>
+      </ul>
+      No data is sent to any server operated by this tool or its author.
+    </div>
+
+    <div>
+      <strong style="color:var(--text);font-size:0.83rem;">How authentication works</strong><br>
+      When you connect to Monarch, a real Chrome browser window opens on your computer and you
+      log in directly on Monarch's website. Your password is never parsed or stored in memory
+      beyond what Monarch's own login form uses. After a successful login, the session cookie
+      is saved to <code>browser_state.json</code> on disk for future transaction retrieval.
+    </div>
+
+    <div>
+      <strong style="color:var(--text);font-size:0.83rem;">AI provider terms</strong><br>
+      If AI Insights are enabled, a summary of your recent transactions is sent to your chosen
+      provider. Review their privacy policy before enabling:
+      <a href="https://www.anthropic.com/privacy" target="_blank" rel="noopener" style="color:var(--accent,#0071e3);">Anthropic</a> ·
+      <a href="https://openai.com/policies/privacy-policy" target="_blank" rel="noopener" style="color:var(--accent,#0071e3);">OpenAI</a> ·
+      <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" style="color:var(--accent,#0071e3);">Google</a>
+    </div>
+
+    <div style="font-size:0.78rem;color:var(--text-tertiary);">
+      <a href="https://github.com/vendaface/balance-forecast" target="_blank" rel="noopener" style="color:inherit;">View source on GitHub</a>
+      — MIT license — provided "as is", without warranty of any kind.
+    </div>
+
+  </div>
+</div>
+
+</main>
+
+<script>
+// True when a Monarch account has been selected — drives button label (Connect vs Refresh)
+var _monarchAccountSelected = {{ setup_status.account_ok | tojson }};
+
+function toggleSensInput(btn) {
+  var wrap = btn.closest('.sensitive-wrap').nextElementSibling; // .sens-input-wrap
+  var isShown = wrap.style.display === 'block';
+  wrap.style.display = isShown ? 'none' : 'block';
+  btn.textContent = isShown ? 'Change' : 'Cancel';
+  if (!isShown) {
+    var inp = wrap.querySelector('input');
+    if (!inp) return;
+    inp.value = '';
+    // If field is already configured, hint the user they can leave it blank to keep current
+    var badge = btn.closest('.sensitive-wrap').querySelector('.sens-badge');
+    if (badge && badge.classList.contains('configured')) {
+      inp.placeholder = 'Leave blank to keep current value';
+    }
+    inp.focus();
+  }
+}
+
+// Update a .sens-badge to show "✓ Configured" after a successful save
+function _markConfigured(inputId) {
+  var inp = document.getElementById(inputId);
+  if (!inp) return;
+  var badge = inp.closest('.sens-input-wrap')
+                 .previousElementSibling  // .sensitive-wrap
+                 .querySelector('.sens-badge');
+  if (!badge) return;
+  badge.className = 'sens-badge configured';
+  badge.textContent = '\u2713 Configured';
+}
+
+// Enter key in any sensitive input triggers its section save
+function _sensKeydown(e, section) {
+  if (e.key === 'Enter') { e.preventDefault(); saveSection(section); }
+}
+
+function setBtn(id, text, color) {
+  var btn = document.getElementById(id);
+  if (!btn) return;
+  btn.textContent = text;
+  btn.style.background = color || '';
+  btn.disabled = (text === 'Saving\u2026');
+  if (color) {
+    setTimeout(function() {
+      btn.textContent = btn.dataset.origText || 'Save';
+      btn.style.background = '';
+      btn.disabled = false;
+    }, 2500);
+  }
+}
+
+function initBtns() {
+  document.querySelectorAll('.save-btn').forEach(function(btn) {
+    btn.dataset.origText = btn.textContent;
+  });
+}
+initBtns();
+
+function saveSection(section) {
+  var btnId = {
+    'forecast': 'saveForecastBtn',
+    'ai': 'saveAiBtn',
+    'monarch': 'saveMonarchBtn',
+    'calendar': 'saveCalendarBtn',
+    'user-context': 'saveContextBtn',
+    'app': 'saveAppBtn',
+  }[section];
+
+  var payload = {};
+
+  if (section === 'forecast') {
+    payload = {
+      horizon_days: parseInt(document.getElementById('horizonDays').value),
+      buffer_threshold: parseFloat(document.getElementById('bufferThreshold').value),
+    };
+  } else if (section === 'ai') {
+    payload = {
+      enabled:  document.getElementById('aiEnabled').checked,
+      provider: document.getElementById('aiProvider').value,
+      model:    document.getElementById('aiModel').value,
+      history_months:         parseInt(document.getElementById('historyMonths').value),
+      insights_max_age_hours: parseInt(document.getElementById('maxAgeHours').value),
+    };
+    var anthropicKey = document.getElementById('anthropicApiKey').value.trim();
+    var openaiKey    = document.getElementById('openaiApiKey').value.trim();
+    var googleKey    = document.getElementById('googleApiKey').value.trim();
+    if (anthropicKey) payload.anthropic_api_key = anthropicKey;
+    if (openaiKey)    payload.openai_api_key    = openaiKey;
+    if (googleKey)    payload.google_api_key    = googleKey;
+  } else if (section === 'monarch') {
+    payload = {
+      checking_account_id: document.getElementById('checkingAccountId').value.trim(),
+    };
+  } else if (section === 'calendar') {
+    payload = {
+      enabled: document.getElementById('calendarEnabled').checked,
+      service: document.getElementById('calendarService').value,
+    };
+    var icsUrl = document.getElementById('calendarIcsUrl').value.trim();
+    if (icsUrl) payload.ics_url = icsUrl;
+  } else if (section === 'user-context') {
+    payload = { content: document.getElementById('userContext').value };
+  } else if (section === 'app') {
+    payload = {
+      port: parseInt(document.getElementById('appPort').value),
+      debug: document.getElementById('appDebug').checked,
+    };
+  }
+
+  setBtn(btnId, 'Saving\u2026');
+
+  fetch('/api/settings/' + section, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.ok) {
+      setBtn(btnId, 'Saved \u2713', '#34c759');
+      // Update "✓ Configured" badges for any sensitive fields that were just saved
+      if (section === 'monarch') {
+        setTimeout(_refreshSetupChecklist, 100);
+      } else if (section === 'ai') {
+        if (payload.anthropic_api_key) _markConfigured('anthropicApiKey');
+        if (payload.openai_api_key)    _markConfigured('openaiApiKey');
+        if (payload.google_api_key)    _markConfigured('googleApiKey');
+      }
+      // Hide any open sensitive inputs after successful save
+      document.querySelectorAll('.sens-input-wrap').forEach(function(w) {
+        w.style.display = 'none';
+      });
+      document.querySelectorAll('.change-btn:not(#loadAccountsBtn)').forEach(function(b) {
+        b.textContent = 'Change';
+      });
+      if (data.restart_required) {
+        setTimeout(function() {
+          alert('App settings saved. Click "Restart Server" for changes to take effect.');
+        }, 400);
+      }
+    } else {
+      setBtn(btnId, 'Error: ' + (data.error || 'unknown'), '#ff3b30');
+    }
+  })
+  .catch(function(err) {
+    setBtn(btnId, 'Error \u2014 check console', '#ff3b30');
+    console.error('Settings save error:', err);
+  });
+}
+
+// ── Session token counter (shared with dashboard via sessionStorage) ───────────
+function _updateAiSessionDisplay() {
+  var session = JSON.parse(sessionStorage.getItem('_aiSession') || 'null');
+  var el = document.getElementById('aiTokenMeta');
+  if (!el || !session || session.runs === 0) return;
+  var label = session.runs === 1 ? '1 AI run' : session.runs + ' AI runs';
+  el.textContent = 'Session: ' + (session.in / 1000).toFixed(1) + 'k\u202fin'
+    + ' / ' + (session.out / 1000).toFixed(1) + 'k\u202fout'
+    + ' / $' + session.cost.toFixed(4)
+    + ' \u00b7 ' + label;
+  el.style.display = '';
+}
+_updateAiSessionDisplay();
+
+// ── Run AI Analysis ───────────────────────────────────────────────────────────
+var _aiPollInterval = null;
+
+function runAiAnalysis() {
+  var btn = document.getElementById('runAiBtn');
+  var statusEl = document.getElementById('aiRunStatus');
+  var logEl = document.getElementById('aiRunLog');
+  btn.textContent = 'Starting\u2026';
+  btn.disabled = true;
+
+  fetch('/api/run-ai-analysis', { method: 'POST' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data.ok) {
+        statusEl.textContent = data.error || 'Could not start analysis.';
+        statusEl.style.display = 'block';
+        btn.textContent = '\u25b6 Run AI Analysis';
+        btn.disabled = false;
+        return;
+      }
+      statusEl.textContent = '\u23f3 Analysis running \u2014 sit tight, this can take a few minutes. Progress appears below as it comes in.';
+      statusEl.style.display = 'block';
+      logEl.style.display = 'block';
+      logEl.textContent = 'Starting\u2026';
+
+      var _dotCount = 0;
+      _aiPollInterval = setInterval(function() {
+        fetch('/api/ai-analysis-status')
+          .then(function(r) { return r.json(); })
+          .then(function(s) {
+            if (s.log && s.log.length) {
+              logEl.textContent = s.log.join('\n');
+              logEl.scrollTop = logEl.scrollHeight;
+            } else if (s.running) {
+              // Animated dots while log is still empty (first few seconds)
+              _dotCount = (_dotCount + 1) % 4;
+              logEl.textContent = 'Starting' + '.'.repeat(_dotCount + 1);
+            }
+            if (!s.running) {
+              clearInterval(_aiPollInterval);
+              if (s.generated_at) {
+                var usage = s.token_usage;
+                // Accumulate into session counter
+                if (usage) {
+                  var lastAt = sessionStorage.getItem('_aiLastAt');
+                  if (lastAt !== s.generated_at) {
+                    sessionStorage.setItem('_aiLastAt', s.generated_at);
+                    var prev = JSON.parse(sessionStorage.getItem('_aiSession') || '{"in":0,"out":0,"cost":0,"runs":0}');
+                    sessionStorage.setItem('_aiSession', JSON.stringify({
+                      in:   prev.in   + (usage.input_tokens  || 0),
+                      out:  prev.out  + (usage.output_tokens || 0),
+                      cost: prev.cost + (usage.cost_usd      || 0),
+                      runs: prev.runs + 1,
+                    }));
+                    _updateAiSessionDisplay();
+                  }
+                }
+                var costStr = usage ? (' \u00b7 ' + (usage.input_tokens/1000).toFixed(1) + 'k in / ' +
+                              (usage.output_tokens/1000).toFixed(1) + 'k out / $' + usage.cost_usd.toFixed(4)) : '';
+                statusEl.innerHTML = '\u2705 Complete! Generated at ' +
+                  s.generated_at.slice(0,19).replace('T',' ') + costStr +
+                  '. <a href="/">Return to dashboard</a> to see updated insights.';
+              } else {
+                statusEl.textContent = '\u2705 Complete. Return to the dashboard to see updated insights.';
+              }
+              btn.textContent = '\u25b6 Run AI Analysis';
+              btn.disabled = false;
+            }
+          });
+      }, 2000);
+    })
+    .catch(function(err) {
+      statusEl.textContent = 'Error starting analysis. Check that the server is running.';
+      statusEl.style.display = 'block';
+      btn.textContent = '\u25b6 Run AI Analysis';
+      btn.disabled = false;
+      console.error(err);
+    });
+}
+
+// ── Calendar service help text ────────────────────────────────────────────────
+var _calendarHelp = {
+  google: 'Google Calendar \u2192 Settings \u2192 [your calendar] \u2192 "Integrate calendar" \u2192 copy the <strong>Secret address in iCal format</strong> (webcal:// or https:// URL).',
+  icloud: 'iCloud Calendar app \u2192 right-click your calendar \u2192 <strong>Share Calendar</strong> \u2192 enable "Public Calendar" \u2192 copy the link shown. Replace <code>webcal://</code> with <code>https://</code> before pasting.',
+  proton: 'Proton Calendar \u2192 Settings \u2192 All settings \u2192 Calendars \u2192 [your calendar] \u2192 <strong>Share with anyone</strong> \u2192 choose "Full view" \u2192 copy the link. This is a snapshot URL — it is refreshed each time the forecast runs.',
+  other:  'Paste any publicly accessible ICS/iCal URL. The URL must be reachable from this machine without authentication.',
+};
+
+function updateCalendarHelp() {
+  var svc = (document.getElementById('calendarService') || {}).value || 'google';
+  var el = document.getElementById('calendarHelp');
+  if (el) el.innerHTML = _calendarHelp[svc] || _calendarHelp.other;
+}
+
+// ── Load Monarch Accounts ─────────────────────────────────────────────────────
+
+function formatAccountOption(acct) {
+  var bal = acct.balance != null
+    ? ' \u2014 $' + Math.abs(acct.balance).toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})
+    : '';
+  var suffix = acct.type === 'heloc' ? ' drawn' : '';
+  return acct.name + bal + suffix;
+}
+
+function populateAccountSelect(accounts) {
+  var select = document.getElementById('checkingAccountId');
+  var currentId = '{{ config.monarch.checking_account_id | default("") }}';
+  select.innerHTML = '';
+  accounts.forEach(function(acct) {
+    var opt = document.createElement('option');
+    opt.value = acct.id;
+    opt.textContent = formatAccountOption(acct);
+    if (String(acct.id) === String(currentId)) opt.selected = true;
+    select.appendChild(opt);
+  });
+  // If nothing was pre-selected (account not in list), insert a placeholder
+  if (!select.value) {
+    var placeholder = document.createElement('option');
+    placeholder.value = currentId;
+    placeholder.textContent = '{{ config.monarch.checking_account_name | default(config.monarch.checking_account_id) | default("(not set)") }}';
+    placeholder.selected = true;
+    select.insertBefore(placeholder, select.firstChild);
+  }
+}
+
+// On load: show calendar help for the current service, and silently try to populate
+// the account select from the 24-hour cache (fast path).
+document.addEventListener('DOMContentLoaded', function() {
+  updateAiProviderUI();
+  updateCalendarHelp();
+  fetch('/api/monarch-accounts?cache_only=1')
+    .then(function(r) { return r.ok ? r.json() : Promise.reject(); })
+    .then(function(accounts) {
+      if (Array.isArray(accounts) && accounts.length > 0) {
+        populateAccountSelect(accounts);
+      }
+    })
+    .catch(function() {}); // no cache — leave Jinja-rendered fallback in place
+});
+
+function loadMonarchAccounts() {
+  var btn = document.getElementById('loadAccountsBtn');
+  var statusEl = document.getElementById('accountsStatus');
+  var resetLabel = _monarchAccountSelected ? 'Refresh Accounts' : 'Connect to Monarch';
+
+  btn.textContent = 'Connecting\u2026';
+  btn.disabled = true;
+  statusEl.innerHTML = '<span class="inline-spinner"></span>'
+    + 'A browser window will open \u2014 <strong>log in to Monarch</strong>'
+    + ' when prompted. The window will close automatically after a successful login'
+    + ' (~30\u201360 seconds)\u2026';
+  statusEl.style.display = 'block';
+
+  // First fetch: establishes the Playwright session and does an initial account pull
+  fetch('/api/monarch-accounts?force=1')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!Array.isArray(data) || data.error) {
+        statusEl.textContent = 'Error: ' + (data.error || 'unexpected response');
+        btn.textContent = resetLabel;
+        btn.disabled = false;
+        return;
+      }
+      // Session is live — do a second fetch immediately to get the complete list
+      statusEl.innerHTML = '<span class="inline-spinner"></span>\u2713 Logged in. Fetching complete account list\u2026';
+      return fetch('/api/monarch-accounts?force=1')
+        .then(function(r2) { return r2.json(); })
+        .then(function(data2) {
+          var accounts = (Array.isArray(data2) && !data2.error) ? data2 : data;
+          populateAccountSelect(accounts);
+          btn.textContent = 'Refresh';
+          btn.disabled = false;
+          _monarchAccountSelected = true;
+          if (accounts.length === 1) {
+            statusEl.textContent = '\u2713 Connected. One account found \u2014 selecting and saving automatically.';
+            saveSection('monarch');
+          } else {
+            statusEl.textContent = '\u2713 Connected. ' + accounts.length
+              + ' accounts found \u2014 select your primary account below, then save.'
+              + ' If the list looks incomplete, click Refresh to fetch again.';
+          }
+        });
+    })
+    .catch(function(err) {
+      statusEl.textContent = 'Could not connect. Check your internet connection and try again.';
+      btn.textContent = resetLabel;
+      btn.disabled = false;
+      console.error(err);
+    });
+}
+
+function _refreshSetupChecklist() {
+  var accountOk = (document.getElementById('checkingAccountId')?.value || '').trim().length > 0;
+
+  // Update checklist spans
+  var items = document.querySelectorAll('.setup-checklist-item');
+  if (items[0]) items[0].textContent = (accountOk ? '\u2705' : '\u2b1c') + ' Account selected';
+
+  var allDone = accountOk;
+
+  // Unlock dashboard header link if all three complete
+  if (allDone) {
+    var backLink = document.getElementById('backToDashboard');
+    if (backLink && backLink.tagName !== 'A') {
+      backLink.outerHTML = '<a href="/" class="back-link">\u2190 Back to Dashboard</a>';
+    }
+  }
+
+  // Enable / disable the prominent "Go to Dashboard" CTA button in the setup banner
+  var goBtn  = document.getElementById('goToDashboardBtn');
+  var goHint = document.getElementById('goToDashboardHint');
+  if (goBtn) {
+    if (allDone) {
+      goBtn.classList.remove('setup-go-btn--disabled');
+      goBtn.removeAttribute('aria-disabled');
+      if (goHint) goHint.textContent = 'Setup complete \u2014 click to open the dashboard';
+      // Pulse and scroll into view so the user notices the button
+      goBtn.classList.add('setup-go-btn--pulse');
+      goBtn.addEventListener('animationend', function() {
+        goBtn.classList.remove('setup-go-btn--pulse');
+      }, { once: true });
+      goBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else {
+      goBtn.classList.add('setup-go-btn--disabled');
+      goBtn.setAttribute('aria-disabled', 'true');
+      if (goHint) goHint.textContent = 'Complete the steps above first';
+    }
+  }
+}
+
+// ── View Recurring Items ───────────────────────────────────────────────────────
+function loadRecurringItems() {
+  var btn = document.getElementById('viewRecurringBtn');
+  var list = document.getElementById('recurringList');
+  btn.textContent = 'Loading\u2026';
+  btn.disabled = true;
+  fetch('/api/recurring-items')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.message && !data.items.length) {
+        list.textContent = data.message;
+      } else {
+        list.innerHTML = data.items.map(function(item) {
+          var amt = (item.amount < 0 ? '\u2212$' : '+$') +
+                    Math.abs(item.amount).toLocaleString('en-US',
+                      {minimumFractionDigits: 2, maximumFractionDigits: 2});
+          return '<div style="display:flex;justify-content:space-between;gap:16px;padding:2px 0;">'
+               + '<span>' + item.name + '</span>'
+               + '<span style="color:#6e6e73;">' + amt + ' \u00b7 ' + item.frequency + '</span>'
+               + '</div>';
+        }).join('');
+      }
+      list.style.display = 'block';
+      btn.textContent = 'Refresh List';
+      btn.disabled = false;
+    })
+    .catch(function() {
+      list.textContent = 'Could not load items.';
+      list.style.display = 'block';
+      btn.textContent = 'View Recurring Items';
+      btn.disabled = false;
+    });
+}
+
+// ── Theme toggle ──────────────────────────────────────────────────────────────
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('theme', theme);
+  var btn = document.getElementById('themeToggle');
+  if (btn) btn.textContent = theme === 'dark' ? '☀' : '🌙';
+}
+function toggleTheme() {
+  var cur = document.documentElement.getAttribute('data-theme') || 'light';
+  applyTheme(cur === 'dark' ? 'light' : 'dark');
+}
+// Initialize toggle icon and checkbox on load
+(function() {
+  var t = localStorage.getItem('theme') || 'light';
+  var btn = document.getElementById('themeToggle');
+  if (btn) btn.textContent = t === 'dark' ? '☀' : '🌙';
+})();
+
+// ── Restart Server ────────────────────────────────────────────────────────────
+function restartServer() {
+  if (!confirm('Restart the server now? The page will reload automatically once it\'s back up.')) return;
+  var btn = document.getElementById('restartBtn');
+  var statusEl = document.getElementById('restartStatus');
+  btn.textContent = 'Restarting\u2026';
+  btn.disabled = true;
+  statusEl.textContent = 'Server is restarting\u2026';
+  statusEl.style.display = 'block';
+
+  function startPolling() {
+    var deadline = Date.now() + 30000;
+    var interval = setInterval(function() {
+      if (Date.now() > deadline) {
+        clearInterval(interval);
+        statusEl.textContent = 'Server did not respond within 30 s. Try refreshing manually.';
+        btn.textContent = '\u21ba Restart Server';
+        btn.disabled = false;
+        return;
+      }
+      fetch('/api/ping', {cache: 'no-store'})
+        .then(function(r) {
+          if (r.ok) {
+            clearInterval(interval);
+            statusEl.textContent = 'Server is back \u2014 reloading\u2026';
+            window.location.reload();
+          }
+        })
+        .catch(function() { /* still down — keep polling */ });
+    }, 750);
+  }
+
+  fetch('/api/restart-server', { method: 'POST' })
+    .then(startPolling)
+    .catch(startPolling);
+}
+
+// ── Factory Reset ─────────────────────────────────────────────────────────────
+function factoryReset() {
+  if (!confirm(
+    'Reset Balance Forecast to factory defaults?\n\n' +
+    'This will permanently delete:\n' +
+    '  \u2022 Monarch session data\n' +
+    '  \u2022 All settings (config.yaml)\n' +
+    '  \u2022 Browser session (you\'ll need to log in again)\n' +
+    '  \u2022 All payment overrides, skips, and scenarios\n' +
+    '  \u2022 AI analysis and user context\n\n' +
+    'The server will restart and return to first-time setup.\n' +
+    'This cannot be undone.'
+  )) return;
+
+  if (!confirm('Are you sure? All data listed above will be permanently deleted.')) return;
+
+  var btn = document.getElementById('factoryResetBtn');
+  var statusEl = document.getElementById('factoryResetStatus');
+  btn.textContent = 'Resetting\u2026';
+  btn.disabled = true;
+  statusEl.style.display = 'block';
+
+  function startPolling() {
+    var deadline = Date.now() + 45000;
+    var interval = setInterval(function() {
+      if (Date.now() > deadline) {
+        clearInterval(interval);
+        statusEl.textContent = 'Server did not respond within 45 s. Try navigating to the app manually.';
+        btn.textContent = '\uD83D\uDDD1 Reset to Factory Defaults';
+        btn.disabled = false;
+        return;
+      }
+      fetch('/api/ping', {cache: 'no-store'})
+        .then(function(r) {
+          if (r.ok) {
+            clearInterval(interval);
+            statusEl.textContent = 'Done \u2014 redirecting to setup\u2026';
+            window.location.href = '/';
+          }
+        })
+        .catch(function() { /* still restarting — keep polling */ });
+    }, 750);
+  }
+
+  // Wait 4 s before polling: gives the background thread time to finish
+  // deleting files and call server.sh restart before the first /api/ping.
+  // Timeline: t=0.5s files deleted, t=1.5s done, t=2.5s restart called,
+  //           t=4.0s poll starts — server is down or coming back up ✓
+  function delayedPoll() {
+    statusEl.textContent = 'Deleting data\u2026 do not close this tab.';
+    setTimeout(function() {
+      statusEl.textContent = 'Restarting server\u2026';
+      startPolling();
+    }, 4000);
+  }
+
+  fetch('/api/factory-reset', { method: 'POST' })
+    .then(delayedPoll)
+    .catch(delayedPoll);
+}
+</script>
+
+<footer style="text-align:center;padding:16px 24px 24px;font-size:0.75rem;color:var(--text-tertiary);border-top:1px solid var(--border);margin-top:8px;">
+  <div style="margin-bottom:4px;">Unofficial tool — not affiliated with or endorsed by Monarch Money &nbsp;·&nbsp; Your data never leaves this device</div>
+  Created by <a href="mailto:github@vendaface.org" style="color:var(--text-secondary);text-decoration:none;">Vendaface</a>
+  with <a href="https://claude.ai/code" style="color:var(--text-secondary);text-decoration:none;">Claude Code</a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/vendaface/balance-forecast" style="color:var(--text-secondary);text-decoration:none;">GitHub</a>
+</footer>
+
+</body>
+</html>

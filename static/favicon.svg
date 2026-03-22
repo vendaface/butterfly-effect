@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!--
+    Balance Forecast favicon
+    Left wings = green (money), right wings = blue (AI), center = amber coin ($)
+    Abstract butterfly — not derived from any trademarked design.
+  -->
+
+  <!-- Upper-left wing: arcs from center outward, money green -->
+  <path d="M15 15 C12 9 4 7 5 13 C6 17 12 17 15 17 Z" fill="#30d158"/>
+  <!-- Lower-left wing: smaller, darker green -->
+  <path d="M15 17 C9 21 3 27 7 29 C11 31 14 22 15 17 Z" fill="#1ea83c"/>
+
+  <!-- Upper-right wing: AI blue -->
+  <path d="M17 15 C20 9 28 7 27 13 C26 17 20 17 17 17 Z" fill="#0a84ff"/>
+  <!-- Lower-right wing: deeper blue -->
+  <path d="M17 17 C23 21 29 27 25 29 C21 31 18 22 17 17 Z" fill="#0060cc"/>
+
+  <!-- Body: slender dark pill -->
+  <ellipse cx="16" cy="16" rx="2" ry="6" fill="#1c1c1e"/>
+
+  <!-- Center node: amber coin suggesting $ -->
+  <circle cx="16" cy="16" r="3" fill="#ff9f0a"/>
+
+  <!-- $ symbol drawn as paths (no text element — crisp at all sizes) -->
+  <!-- vertical stroke -->
+  <line x1="16" y1="13.5" x2="16" y2="18.5" stroke="#1c1c1e" stroke-width="1.1" stroke-linecap="round"/>
+  <!-- upper crossbar -->
+  <line x1="14.3" y1="15" x2="17.7" y2="15" stroke="#1c1c1e" stroke-width="1" stroke-linecap="round"/>
+  <!-- lower crossbar -->
+  <line x1="14.3" y1="17" x2="17.7" y2="17" stroke="#1c1c1e" stroke-width="1" stroke-linecap="round"/>
+</svg>
