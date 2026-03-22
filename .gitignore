@@ -24,3 +24,8 @@ __pycache__/
 # Server PID and log files
 .server*.pid
 .server*.log
+
+# User data files (reset by reset script — not source controlled)
+payment_monthly_amounts.json
+payment_skips.json
+scenarios.json
