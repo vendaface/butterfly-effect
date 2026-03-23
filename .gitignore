@@ -37,6 +37,7 @@ __pycache__/
 payment_monthly_amounts.json
 payment_skips.json
 scenarios.json
+dismissed_suggestions.json
 
 # Demo mode — all demo/ files are intentional, public demo data.
 # Exceptions must come AFTER the patterns they override.

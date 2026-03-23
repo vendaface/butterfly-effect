@@ -38,6 +38,7 @@ from forecast_builder import (
 )
 from storage import (
     _ACCOUNTS_CACHE_FILE,
+    _DISMISSED_SUGGESTIONS_FILE,
     _INSIGHTS_FILE,
     _PAYMENT_MONTHLY_AMOUNTS_FILE,
     _PAYMENT_OVERRIDES_FILE,
@@ -46,12 +47,14 @@ from storage import (
     _USER_CONTEXT_FILE,
     _USER_CONTEXT_TEMPLATE,
     _atomic_write,
+    _load_dismissed_suggestions,
     _load_insights,
     _load_payment_monthly_amounts,
     _load_payment_overrides,
     _load_payment_skips,
     _load_scenarios,
     _parse_corrections,
+    _save_dismissed_suggestions,
     _write_corrections,
 )
 
@@ -148,7 +151,105 @@ def api_ai_insights():
         except Exception:
             pass
 
+    # Filter suggested_actions: remove already-applied and dismissed suggestions
+    suggestions = insights.get("suggested_actions", [])
+    if suggestions:
+        skips_set   = {(s["name"].lower(), s["month"]) for s in _load_payment_skips()}
+        amounts_set = {(r["name"].lower(), r.get("month", "")) for r in _load_payment_monthly_amounts()}
+        dismissed   = set(_load_dismissed_suggestions())
+
+        def _sug_fingerprint(s: dict) -> str:
+            t = s.get("type", "")
+            n = (s.get("transaction_name") or "").lower()
+            if t in ("skip", "override"):
+                return f"{t}:{n}:{s.get('month', '')}"
+            return f"{t}:{n}"
+
+        def _already_applied(s: dict) -> bool:
+            t = s.get("type", "")
+            n = (s.get("transaction_name") or "").lower()
+            if t == "skip":     return (n, s.get("month", "")) in skips_set
+            if t == "override": return (n, s.get("month", "")) in amounts_set
+            return False
+
+        insights["suggested_actions"] = [
+            s for s in suggestions
+            if not _already_applied(s) and _sug_fingerprint(s) not in dismissed
+        ]
+
     return jsonify(insights)
+
+
+# ── API: AI suggested actions ─────────────────────────────────────────────────
+
+@app.route("/api/ai-suggestions/apply", methods=["POST"])
+def api_ai_suggestions_apply():
+    """
+    Apply an AI-suggested forecast action.
+    Body: {"suggestion": {"type": "skip|override|suppress", "transaction_name": "...",
+                          "month": "YYYY-MM", "amount": -123.00}}
+    """
+    body  = request.get_json(force=True) or {}
+    s     = body.get("suggestion", {})
+    stype = (s.get("type") or "").strip()
+    name  = (s.get("transaction_name") or "").strip()
+    if not name or not stype:
+        return jsonify({"error": "suggestion.type and suggestion.transaction_name required"}), 400
+
+    if stype == "skip":
+        month = (s.get("month") or "").strip()
+        if not month:
+            return jsonify({"error": "month required for skip"}), 400
+        skips = _load_payment_skips()
+        skips = [x for x in skips
+                 if not (x["name"].lower() == name.lower() and x["month"] == month)]
+        skips.append({"name": name, "month": month, "note": "Applied from AI suggestion"})
+        _atomic_write(_PAYMENT_SKIPS_FILE, json.dumps(skips, indent=2))
+
+    elif stype == "override":
+        month  = (s.get("month") or "").strip()
+        amount = s.get("amount")
+        if not month or amount is None:
+            return jsonify({"error": "month and amount required for override"}), 400
+        records = _load_payment_monthly_amounts()
+        records = [r for r in records
+                   if not (r["name"].lower() == name.lower() and r.get("month") == month)]
+        records.append({"name": name, "month": month, "amount": float(amount),
+                        "note": "Applied from AI suggestion"})
+        _atomic_write(_PAYMENT_MONTHLY_AMOUNTS_FILE, json.dumps(records, indent=2))
+
+    elif stype == "suppress":
+        overrides = _load_payment_overrides()
+        overrides[name.lower()] = {
+            "name":    name,
+            "amount":  0.0,
+            "note":    "Suppressed via AI suggestion",
+            "updated": datetime.now().strftime("%Y-%m-%d"),
+        }
+        _atomic_write(_PAYMENT_OVERRIDES_FILE, json.dumps(overrides, indent=2))
+
+    else:
+        return jsonify({"error": f"unknown suggestion type: {stype!r}"}), 400
+
+    _clear_forecast_cache()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/ai-suggestions/dismiss", methods=["POST"])
+def api_ai_suggestions_dismiss():
+    """
+    Dismiss a suggested action so it won't reappear (even after re-running AI).
+    Body: {"fingerprint": "skip:brown university:2026-05"}
+    """
+    body = request.get_json(force=True) or {}
+    fp   = (body.get("fingerprint") or "").strip()
+    if not fp:
+        return jsonify({"error": "fingerprint required"}), 400
+    dismissed = _load_dismissed_suggestions()
+    if fp not in dismissed:
+        dismissed.append(fp)
+        _save_dismissed_suggestions(dismissed)
+    return jsonify({"ok": True})
 
 
 # ── API: user context / corrections ───────────────────────────────────────────

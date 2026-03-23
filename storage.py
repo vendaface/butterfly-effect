@@ -24,8 +24,9 @@ _USER_CONTEXT_TEMPLATE       = "# AI Corrections\n\n"   # default when file does
 _PAYMENT_OVERRIDES_FILE      = _BASE / "payment_overrides.json"
 _PAYMENT_SKIPS_FILE          = _BASE / "payment_skips.json"
 _PAYMENT_MONTHLY_AMOUNTS_FILE = _BASE / "payment_monthly_amounts.json"
-_SCENARIOS_FILE              = _BASE / "scenarios.json"
-_ACCOUNTS_CACHE_FILE         = _BASE / "monarch_accounts_cache.json"
+_SCENARIOS_FILE               = _BASE / "scenarios.json"
+_ACCOUNTS_CACHE_FILE          = _BASE / "monarch_accounts_cache.json"
+_DISMISSED_SUGGESTIONS_FILE   = _BASE / "dismissed_suggestions.json"
 
 # ── Regex patterns for user_context.md parsing ────────────────────────────────
 
@@ -209,3 +210,19 @@ def _load_insights() -> dict | None:
         return json.loads(_INSIGHTS_FILE.read_text())
     except Exception:
         return None
+
+
+def _load_dismissed_suggestions() -> list:
+    """Load list of dismissed suggestion fingerprint strings from dismissed_suggestions.json."""
+    if not _DISMISSED_SUGGESTIONS_FILE.exists():
+        return []
+    try:
+        data = json.loads(_DISMISSED_SUGGESTIONS_FILE.read_text())
+        return data if isinstance(data, list) else []
+    except Exception:
+        return []
+
+
+def _save_dismissed_suggestions(dismissed: list) -> None:
+    """Persist dismissed suggestion fingerprints atomically."""
+    _atomic_write(_DISMISSED_SUGGESTIONS_FILE, json.dumps(dismissed, indent=2))

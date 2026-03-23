@@ -308,12 +308,34 @@ Schema:
   "risk_flags": [
     "Brown tuition 10-month plan: payments end April 3, resume ~September — forecast gap is expected"
   ],
-  "seasonal_notes": "April historically runs $800 above average due to tax prep and insurance renewals"
+  "seasonal_notes": "April historically runs $800 above average due to tax prep and insurance renewals",
+  "suggested_actions": [
+    {
+      "type": "skip",
+      "transaction_name": "Brown University",
+      "month": "2026-05",
+      "reason": "User note states Brown tuition pauses May and resumes June",
+      "confidence": "high"
+    }
+  ]
 }
 
 If there are no transfer recommendations needed, set transfer_recommendation to null.
 If there are no surplus alerts, set surplus_alerts to [].
 If there are no risk flags, set risk_flags to [].
+If there are no suggested actions, set suggested_actions to [].
+
+SUGGESTED ACTIONS: Review USER CORRECTIONS & CONTEXT and populate "suggested_actions" with
+any forecast adjustments that are clearly and explicitly implied by those corrections.
+Rules:
+- Only suggest actions that are explicitly stated — never infer beyond what the user wrote.
+- Match transaction_name exactly to a name appearing in the MONARCH RECURRING section.
+- Three action types:
+    "skip"     — omit this transaction for one specific month (requires "month": "YYYY-MM")
+    "override" — change the amount for one specific month (requires "month" and "amount" as a negative number)
+    "suppress" — remove this transaction from the entire forecast (no month needed)
+- Set confidence "high" only when the correction is unambiguous and directly actionable.
+- Return [] when nothing is clearly implied. Never fabricate suggestions.
 """
 
 

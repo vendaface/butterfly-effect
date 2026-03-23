@@ -426,6 +426,28 @@
     .ai-predicted-list { display: flex; flex-wrap: wrap; gap: 6px; }
     .ai-seasonal { font-size: 0.83rem; color: var(--text-secondary); font-style: italic; }
     .ai-timestamp { font-size: 0.75rem; color: var(--text-tertiary); margin-top: 16px; }
+    /* Suggested actions cards */
+    .ai-suggestion {
+      background: var(--ai-flag-bg);
+      border: 1px solid var(--ai-flag-border);
+      border-left: 3px solid #5856d6;
+      border-radius: 6px;
+      padding: 9px 12px;
+      font-size: 0.82rem;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    [data-theme="dark"] .ai-suggestion { border-left-color: #bf5af2; }
+    .ai-suggestion-body { flex: 1; min-width: 0; }
+    .ai-suggestion-action { font-weight: 600; color: var(--text); margin-bottom: 2px; }
+    .ai-suggestion-reason { color: var(--text-secondary); font-size: 0.78rem; }
+    .ai-suggestion-btns { display: flex; gap: 6px; flex-shrink: 0; margin-top: 1px; }
+    .ai-sug-apply { background: #5856d6; color: #fff; border: none; border-radius: 6px; padding: 3px 10px; font-size: 0.78rem; font-weight: 500; cursor: pointer; }
+    .ai-sug-apply:hover { background: #4845c4; }
+    .ai-sug-dismiss { background: none; color: var(--text-secondary); border: 1px solid var(--border-input); border-radius: 6px; padding: 3px 10px; font-size: 0.78rem; cursor: pointer; }
+    .ai-sug-dismiss:hover { background: var(--surface-2); }
     .ai-not-available {
       padding: 20px 22px;
       color: var(--text-secondary);
@@ -957,6 +979,68 @@
     return 'Annual';
   }
 
+  // ── AI suggested-action helpers ──────────────────────────────────────────────
+
+  function _suggestionFingerprint(s) {
+    var t = s.type || '', n = (s.transaction_name || '').toLowerCase();
+    if (t === 'skip' || t === 'override') return t + ':' + n + ':' + (s.month || '');
+    return t + ':' + n;
+  }
+
+  function _suggestionActionLabel(s) {
+    var _months = ['','January','February','March','April','May','June',
+                   'July','August','September','October','November','December'];
+    var monthLabel = '';
+    if (s.month) {
+      var parts = s.month.split('-');
+      monthLabel = (_months[parseInt(parts[1])] || s.month) + ' ' + parts[0];
+    }
+    if (s.type === 'skip')
+      return 'Skip \u201c' + (s.transaction_name || '') + '\u201d for ' + monthLabel;
+    if (s.type === 'override')
+      return 'Set \u201c' + (s.transaction_name || '') + '\u201d to $' +
+             Math.abs(s.amount || 0).toLocaleString() + ' for ' + monthLabel;
+    if (s.type === 'suppress')
+      return 'Suppress \u201c' + (s.transaction_name || '') + '\u201d from the entire forecast';
+    return 'Unknown action';
+  }
+
+  function applyAiSuggestion(btn, suggestionJson) {
+    var s = JSON.parse(suggestionJson);
+    btn.textContent = 'Applying\u2026'; btn.disabled = true;
+    fetch('/api/ai-suggestions/apply', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({suggestion: s}),
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (!d.ok) {
+        showError(d.error || 'Could not apply suggestion.');
+        btn.textContent = 'Apply'; btn.disabled = false;
+        return;
+      }
+      showInfo('Applied \u2014 forecast updated.');
+      if (window.recalcForecast) window.recalcForecast();
+      window.loadAiInsights();
+    })
+    .catch(function() {
+      showError('Could not apply suggestion.');
+      btn.textContent = 'Apply'; btn.disabled = false;
+    });
+  }
+
+  function dismissAiSuggestion(card, suggestionJson) {
+    var s = JSON.parse(suggestionJson);
+    fetch('/api/ai-suggestions/dismiss', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({fingerprint: _suggestionFingerprint(s)}),
+    })
+    .then(function() { if (card && card.parentNode) card.parentNode.removeChild(card); })
+    .catch(function() { showError('Could not dismiss suggestion.'); });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+
   function renderAiInsights(data) {
     var panel = document.getElementById('aiPanel');
     var status = document.getElementById('aiStatus');
@@ -1007,6 +1091,35 @@
     // Narrative
     if (data.narrative) {
       html += '<div class="ai-narrative">' + _escHtml(data.narrative) + '</div>';
+    }
+
+    // Suggested actions (AI-inferred from user corrections)
+    var suggestions = data.suggested_actions || [];
+    if (suggestions.length > 0) {
+      html += '<div class="ai-section">';
+      html += '<div class="ai-section-title">\u26a1 Suggested Actions</div>';
+      suggestions.forEach(function(s, i) {
+        var conf = s.confidence || 'medium';
+        var confColor = conf === 'high' ? '#34c759' : conf === 'low' ? '#aeaeb2' : '#ff9500';
+        var sid = 'ai-sug-' + i;
+        // Escape the JSON for embedding in an HTML attribute
+        var sJson = JSON.stringify(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+        html += '<div class="ai-suggestion" id="' + sid + '">';
+        html += '<div class="ai-suggestion-body">';
+        html += '<div class="ai-suggestion-action">' + _escHtml(_suggestionActionLabel(s)) + '</div>';
+        html += '<div class="ai-suggestion-reason">' + _escHtml(s.reason || '') +
+                ' <span style="color:' + confColor + ';font-size:0.72rem;font-weight:600;">' +
+                _escHtml(conf) + ' confidence</span></div>';
+        html += '</div>';
+        html += '<div class="ai-suggestion-btns">';
+        html += '<button class="ai-sug-apply" onclick="applyAiSuggestion(this,' +
+                "'" + sJson + "'" + ')">Apply</button>';
+        html += '<button class="ai-sug-dismiss" onclick="dismissAiSuggestion(' +
+                "document.getElementById('" + sid + "')," +
+                "'" + sJson + "'" + ')">Dismiss</button>';
+        html += '</div></div>';
+      });
+      html += '</div>';
     }
 
     // Transfer recommendation
