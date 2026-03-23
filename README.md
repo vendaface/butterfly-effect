@@ -46,14 +46,6 @@ A list of dates up to your forecast horizon with clickable transaction pills sho
 
 ---
 
-### Transaction calendar
-
-A list of dates up to your forecast horizon with clickable transaction pills showing merchants & amounts.
-
-![Transactions appear on an agenda-like calendar](docs/screenshots/dashboard-tx-calendar.png)
-
----
-
 ### Editing a transaction amount inline
 
 Click any transaction on the calendar to pop up an editing interface. Change single amounts, recurring amounts, suppress the series, or skip the transaction altogether. The forecast updates instantly when you save the changes.
