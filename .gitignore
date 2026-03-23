@@ -34,10 +34,15 @@ __pycache__/
 .server*.log
 
 # User data files (reset by reset script — not source controlled)
+payment_overrides.json
 payment_monthly_amounts.json
 payment_skips.json
 scenarios.json
 dismissed_suggestions.json
+
+# Local virtual environments (server.sh uses ~/.cache/balance-forecast-venv,
+# but developers may create one in the project directory)
+.venv*/
 
 # Demo mode — all demo/ files are intentional, public demo data.
 # Exceptions must come AFTER the patterns they override.
@@ -47,5 +52,6 @@ dismissed_suggestions.json
 !demo/scenarios.json
 !demo/user_context.md
 !demo/payment_skips.json
+!demo/payment_overrides.json
 # demo/backup/ is created at runtime — do NOT track it
 demo/backup/
