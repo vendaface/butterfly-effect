@@ -23,39 +23,63 @@ Key capabilities:
 
 ## Screenshots
 
-### Balance forecast — light mode
+### Balance forecast
 
 The main dashboard projects your checking account balance forward 45 days (configurable). Stat cards show current balance, the projected low for the period, how many days fall below your configured buffer, and the buffer threshold itself. The chart draws a clear visual boundary at your buffer line — dips below it appear instantly.
 
-<img src="docs/screenshots/dashboard-light.png" alt="Balance Forecast dashboard in light mode, showing the projected balance chart with a dip below the $2,000 buffer threshold" width="840" />
+![Balance Forecast dashboard in light mode, showing the projected balance chart with a dip below the $2,000 buffer threshold](docs/screenshots/dashboard-light.png)
 
 ---
 
-### Settings — AI Insights
+### Clicking a transaction pill
 
-Configure your AI provider, model, and API key here. The **Last generated** line shows the timestamp, token counts, and cost of the most recent analysis inline so you know exactly how fresh it is and what it cost to run. You can kick off a new analysis directly from this page and watch the live progress log without leaving Settings.
+Each event on the chart is a clickable pill. Tapping one opens a popover with the amount, source, and quick actions — override the amount, suppress it from the forecast entirely, or (for scenario events) delete it outright.
 
-<img src="docs/screenshots/settings-ai.png" alt="AI Insights settings panel showing provider selection, model, API key configuration, and Run AI Analysis button" width="700" />
+![Transaction pill popover showing quick actions for a forecast event](docs/screenshots/dashboard-tx-popup.png)
 
 ---
 
-### Settings — App Server
+### Editing a transaction amount inline
 
-<img src="docs/screenshots/settings-server.png" alt="App Server settings showing port configuration, debug mode toggle, Restart Server and Reset to Factory Defaults buttons" width="700" />
+The Variable Payments card lets you lock in a known upcoming amount for any credit card or irregular bill. Enter $0 to suppress it for a month.
+
+![Editing a variable payment amount inline in the Variable Payments card](docs/screenshots/dashboard-tx-edit.png)
 
 ---
 
 ### AI risk flags, seasonal notes, and corrections
 
-The AI panel surfaces actionable risk flags — a projected balance dip, high-interest debt worth targeting, and anything else Claude flags as worth attention — alongside a seasonal spending note drawn from your actual transaction history. Below it, the Corrections panel lets you hand-author facts, known quirks, and overrides that get injected into every AI analysis to sharpen its accuracy.
+The AI panel surfaces actionable risk flags — a projected balance dip, high-interest debt worth targeting, and anything else the model flags as worth attention — alongside a seasonal spending note drawn from your actual transaction history. Below it, the Corrections panel lets you hand-author facts, known quirks, and overrides that get injected into every AI analysis to sharpen its accuracy.
 
-<img src="docs/screenshots/dashboard-insights.png" alt="AI risk flags panel showing two warnings, seasonal notes section, and the Corrections panel with three entries" width="840" />
+![AI risk flags panel showing two warnings, seasonal notes section, and the Corrections panel with three entries](docs/screenshots/dashboard-insights.png)
 
 ---
 
-### Balance forecast — dark mode
+### Settings — AI Insights
 
-<img src="docs/screenshots/dashboard-dark.png" alt="Balance Forecast dashboard in dark mode, showing the same projected balance chart with a dark color scheme" width="840" />
+Configure your AI provider, model, and API key here. The **Last generated** line shows the timestamp, token counts, and cost of the most recent analysis. You can kick off a new analysis directly from this page and watch the live progress log without leaving Settings.
+
+![AI Insights settings panel showing provider selection, model, API key configuration, and Run AI Analysis button](docs/screenshots/settings-ai.png)
+
+---
+
+### Settings — App Server
+
+Port, debug mode, and the two server action buttons: **Restart Server** (preserves all data) and **Reset to Factory Defaults** (full wipe, cannot be undone).
+
+![App Server settings showing port configuration, debug mode toggle, Restart Server and Reset to Factory Defaults buttons](docs/screenshots/settings-server.png)
+
+---
+
+### Dark mode — Settings
+
+![Settings page in dark mode showing the Restart Server and Reset to Factory Defaults buttons](docs/screenshots/settings-dark.png)
+
+---
+
+### Dark mode — Dashboard
+
+![Balance Forecast dashboard in dark mode, showing the same projected balance chart with a dark color scheme](docs/screenshots/dashboard-dark.png)
 
 ---
 
