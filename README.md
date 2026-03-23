@@ -21,6 +21,44 @@ Key capabilities:
 
 ---
 
+## Screenshots
+
+### Balance forecast — light mode
+
+The main dashboard projects your checking account balance forward 45 days (configurable). Stat cards show current balance, the projected low for the period, how many days fall below your configured buffer, and the buffer threshold itself. The chart draws a clear visual boundary at your buffer line — dips below it appear instantly.
+
+<img src="docs/screenshots/dashboard-light.png" alt="Balance Forecast dashboard in light mode, showing the projected balance chart with a dip below the $2,000 buffer threshold" width="840" />
+
+---
+
+### Settings — AI Insights
+
+Configure your AI provider, model, and API key here. The **Last generated** line shows the timestamp, token counts, and cost of the most recent analysis inline so you know exactly how fresh it is and what it cost to run. You can kick off a new analysis directly from this page and watch the live progress log without leaving Settings.
+
+<img src="docs/screenshots/settings-ai.png" alt="AI Insights settings panel showing provider selection, model, API key configuration, and Run AI Analysis button" width="700" />
+
+---
+
+### Settings — App Server
+
+<img src="docs/screenshots/settings-server.png" alt="App Server settings showing port configuration, debug mode toggle, Restart Server and Reset to Factory Defaults buttons" width="700" />
+
+---
+
+### AI risk flags, seasonal notes, and corrections
+
+The AI panel surfaces actionable risk flags — a projected balance dip, high-interest debt worth targeting, and anything else Claude flags as worth attention — alongside a seasonal spending note drawn from your actual transaction history. Below it, the Corrections panel lets you hand-author facts, known quirks, and overrides that get injected into every AI analysis to sharpen its accuracy.
+
+<img src="docs/screenshots/dashboard-insights.png" alt="AI risk flags panel showing two warnings, seasonal notes section, and the Corrections panel with three entries" width="840" />
+
+---
+
+### Balance forecast — dark mode
+
+<img src="docs/screenshots/dashboard-dark.png" alt="Balance Forecast dashboard in dark mode, showing the same projected balance chart with a dark color scheme" width="840" />
+
+---
+
 ## Disclaimer & legal notice
 
 **This is an unofficial, community-built tool. It is not affiliated with, endorsed by, sponsored by, or in any way connected to Monarch Money, Inc.**
