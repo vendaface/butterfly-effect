@@ -21,6 +21,14 @@ __pycache__/
 # macOS
 .DS_Store
 
+# iCloud conflict copies (e.g. "config 2.yaml", "browser_state 3.json", ".env 2")
+* 2
+* 3
+* 4
+* 2.*
+* 3.*
+* 4.*
+
 # Server PID and log files
 .server*.pid
 .server*.log

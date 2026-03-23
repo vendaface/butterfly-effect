@@ -32,9 +32,18 @@ if [ ! -f .env ]; then
 fi
 
 # ── Virtual environment ───────────────────────────────────────────────────────
-VENV=".venv-balance-forecast"
-if [ ! -d "$VENV" ]; then
-  echo "Creating virtual environment..."
+# Stored outside iCloud Drive to prevent macOS from evicting venv files.
+VENV="$HOME/.cache/balance-forecast-venv"
+_venv_ok=true
+if [ ! -x "$VENV/bin/python" ]; then
+  _venv_ok=false
+elif ! "$VENV/bin/pip" --version &>/dev/null 2>&1; then
+  _venv_ok=false
+fi
+
+if [ "$_venv_ok" = false ]; then
+  echo "Creating virtual environment at $VENV ..."
+  rm -rf "$VENV"
   "$PYTHON" -m venv "$VENV"
 fi
 source "$VENV/bin/activate"

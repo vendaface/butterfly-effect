@@ -7,3 +7,4 @@ pyyaml
 anthropic
 openai
 google-genai
+websockets<14  # google-genai 1.68.x incompatible with websockets 14+ (websockets.client removed)

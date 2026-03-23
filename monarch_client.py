@@ -276,7 +276,7 @@ async def _do_login(page, context):
     print("✓ Session saved — future runs will be headless.")
 
 
-async def _fetch_all(checking_account_id: str, history_days: int):
+async def _fetch_all(checking_account_id: str, history_days: int, _retried: bool = False):
     from playwright.async_api import async_playwright
 
     has_saved_state = BROWSER_STATE_FILE.exists()
@@ -317,11 +317,13 @@ async def _fetch_all(checking_account_id: str, history_days: int):
 
         if not logged_in:
             if has_saved_state:
-                # Saved session expired — delete and relaunch visibly
+                # Saved session expired — delete and relaunch visibly (one retry only)
                 BROWSER_STATE_FILE.unlink(missing_ok=True)
                 await browser.close()
+                if _retried:
+                    raise RuntimeError("Monarch session expired and re-login failed. Please reconnect via Settings.")
                 print("Session expired. Relaunching browser for re-login...")
-                return await _fetch_all(checking_account_id, history_days)
+                return await _fetch_all(checking_account_id, history_days, _retried=True)
             await _do_login(page, context)
 
         # ── Collect accounts (bank accounts live on /accounts, not dashboard) ──
@@ -377,7 +379,7 @@ async def _fetch_all(checking_account_id: str, history_days: int):
     return balance, transactions, recurring
 
 
-async def _fetch_all_extended(checking_account_id: str, history_days: int):
+async def _fetch_all_extended(checking_account_id: str, history_days: int, _retried: bool = False):
     """
     Extended version of _fetch_all that also scrapes the goals page and returns
     all account balances (not just checking).
@@ -411,8 +413,10 @@ async def _fetch_all_extended(checking_account_id: str, history_days: int):
             if has_saved_state:
                 BROWSER_STATE_FILE.unlink(missing_ok=True)
                 await browser.close()
+                if _retried:
+                    raise RuntimeError("Monarch session expired and re-login failed. Please reconnect via Settings.")
                 print("Session expired. Relaunching browser for re-login...")
-                return await _fetch_all_extended(checking_account_id, history_days)
+                return await _fetch_all_extended(checking_account_id, history_days, _retried=True)
             await _do_login(page, context)
 
         # ── Collect accounts ──────────────────────────────────────────────────

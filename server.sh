@@ -6,13 +6,45 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-VENV=".venv-balance-forecast"
+VENV="$HOME/.cache/balance-forecast-venv"
 PID_FILE="$SCRIPT_DIR/.server.pid"
 LOG_FILE="$SCRIPT_DIR/.server.log"
 PORT=5002
 
 _activate() {
   source "$VENV/bin/activate"
+}
+
+_ensure_venv() {
+  # Rebuild the venv if it's missing or pip is broken (e.g. after iCloud eviction).
+  local healthy=true
+  if [ ! -x "$VENV/bin/python" ]; then
+    healthy=false
+  elif ! "$VENV/bin/pip" --version &>/dev/null 2>&1; then
+    healthy=false
+  fi
+
+  if [ "$healthy" = false ]; then
+    echo "Virtual environment missing or corrupted — rebuilding at $VENV ..."
+    rm -rf "$VENV"
+    # Pick the best available Python (3.11+)
+    local PYTHON=""
+    for candidate in python3.14 python3.13 python3.12 python3.11 python3; do
+      if command -v "$candidate" &>/dev/null; then
+        if "$candidate" -c 'import sys; sys.exit(0 if sys.version_info >= (3,11) else 1)' 2>/dev/null; then
+          PYTHON="$candidate"
+          break
+        fi
+      fi
+    done
+    if [ -z "$PYTHON" ]; then
+      echo "✗ Python 3.11+ not found. Install from https://python.org"
+      exit 1
+    fi
+    "$PYTHON" -m venv "$VENV"
+    "$VENV/bin/pip" install -q -r requirements.txt
+    echo "✓ Virtual environment rebuilt"
+  fi
 }
 
 _is_running() {
@@ -45,6 +77,7 @@ cmd_start() {
     return 0
   fi
 
+  _ensure_venv
   _activate
   pip install -q -r requirements.txt
 

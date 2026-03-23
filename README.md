@@ -50,7 +50,7 @@ Here is exactly where data flows and where it is stored:
 
 | File | What it contains | Leaves your device? |
 |---|---|---|
-| `.env` | AI API key |
+| `.env` | AI API key | **Never** |
 | `browser_state.json` | Monarch session cookies | **Never** |
 | `config.yaml` | App preferences (account ID, forecast horizon, etc.) | **Never** |
 | `insights.json` | AI analysis output | Only if you configure an AI provider |
@@ -82,10 +82,10 @@ Your AI API key is stored only in `.env` on your device. It is sent only to your
   - Linux: `sudo apt install python3` (Debian/Ubuntu) or `sudo dnf install python3` (Fedora)
 
 **Optional — for AI insights:**
-An API key from one of these providers (pick one):
-- [Anthropic (Claude)](https://console.anthropic.com/) — recommended, tested & verified
-- [OpenAI (GPT)](https://platform.openai.com/) — not tested
-- [Google (Gemini)](https://aistudio.google.com/) — not tested
+An API key from one of these providers (pick one). See [Setting up AI Insights](#setting-up-ai-insights) below for step-by-step instructions.
+- [Anthropic (Claude)](https://console.anthropic.com/) — recommended
+- [OpenAI (GPT)](https://platform.openai.com/)
+- [Google (Gemini)](https://aistudio.google.com/)
 
 ---
 
@@ -149,6 +149,53 @@ The first time you open the dashboard after setup the app fetches your transacti
 
 ---
 
+## Setting up AI Insights
+
+AI Insights is optional but adds meaningful value — seasonal spending patterns, predicted upcoming expenses, and transfer recommendations tailored to your actual history. You need an API key from one provider. The feature is off by default; you enable it in **Settings → AI Insights**.
+
+### Choosing a provider
+
+All three providers work. Anthropic's Claude is recommended because the prompt is tuned and tested against it, but OpenAI and Google Gemini produce good results too.
+
+**Cost:** AI analysis runs once on demand (you click "Run AI Analysis"). A single analysis call uses roughly 3,000–8,000 tokens depending on how many months of history you include. At current pricing this is fractions of a cent per run — typically under $0.05. None of the providers charge for having an account or holding an API key; you only pay for what you use.
+
+---
+
+### Anthropic (Claude) — recommended
+
+1. Go to [console.anthropic.com](https://console.anthropic.com/) and sign up or sign in.
+2. In the left sidebar click **API Keys**.
+3. Click **Create Key**, give it a name (e.g. "Balance Forecast"), and click **Create Key**.
+4. Copy the key — it starts with `sk-ant-api03-…`. **You won't be able to see it again after closing this dialog**, so copy it now.
+5. In the app go to **Settings → AI Insights**, set the provider to **Anthropic**, and paste the key into the API Key field. Click **Save AI Settings**.
+
+New Anthropic accounts receive a small free credit to start. After that, usage is billed at [published rates](https://www.anthropic.com/pricing).
+
+---
+
+### OpenAI (GPT)
+
+1. Go to [platform.openai.com](https://platform.openai.com/) and sign up or sign in.
+2. Click your profile icon in the top-right corner and choose **Your profile**, then select **API keys** in the left sidebar — or go directly to [platform.openai.com/api-keys](https://platform.openai.com/api-keys).
+3. Click **Create new secret key**, give it a name, and click **Create secret key**.
+4. Copy the key — it starts with `sk-proj-…` or `sk-…`. **Store it somewhere safe; it won't be shown again.**
+5. In the app go to **Settings → AI Insights**, set the provider to **OpenAI**, and paste the key into the API Key field. Click **Save AI Settings**.
+
+OpenAI requires a paid account (add a credit card under **Billing → Payment methods**) before API keys will work. Usage is billed at [published rates](https://openai.com/api/pricing).
+
+---
+
+### Google (Gemini)
+
+1. Go to [aistudio.google.com](https://aistudio.google.com/) and sign in with a Google account.
+2. Click **Get API key** in the left sidebar, then **Create API key**.
+3. Copy the key — it starts with `AIza…`.
+4. In the app go to **Settings → AI Insights**, set the provider to **Google**, and paste the key into the API Key field. Click **Save AI Settings**.
+
+Google AI Studio keys include a generous free tier. Usage beyond the free tier is billed at [published rates](https://ai.google.dev/pricing).
+
+---
+
 ## Features
 
 - **Forecast balance chart** with recurring payments projected forward, configurable to any number of days
@@ -162,7 +209,7 @@ The first time you open the dashboard after setup the app fetches your transacti
 
 ## Troubleshooting
 
-**"Setup needed" error on the dashboard** — click **→ Open Settings** in the error box and complete the Monarch Connection section (email, password, and primary account selection).
+**"Setup needed" error on the dashboard** — click **→ Open Settings** in the error box and complete the Monarch Connection section (connect to Monarch and select your primary account).
 
 **Forecast is slow** — this is normal on first run. The app opens a browser, logs into Monarch, and fetches months of transaction history. Subsequent loads use a cached session and are much faster.
 
@@ -170,7 +217,7 @@ The first time you open the dashboard after setup the app fetches your transacti
 
 **Account list looks incomplete after connecting** — click **Refresh Accounts** in Settings → Monarch Connection.
 
-**"API key is not configured"** — go to Settings → AI Insights, select your AI provider, and paste in your key.
+**"API key is not configured"** — go to Settings → AI Insights, select your AI provider, and paste in your key. See [Setting up AI Insights](#setting-up-ai-insights) for step-by-step instructions on getting a key from each provider.
 
 **Browser doesn't open automatically (Linux)** — navigate to `http://localhost:5002` in your browser manually.
 
@@ -201,7 +248,7 @@ The first time you open the dashboard after setup the app fetches your transacti
 | File | Purpose |
 |---|---|
 | `config.yaml` | Main configuration (auto-created on first launch) |
-| `.env` | Credentials — email, password, API keys (auto-created on first launch) |
+| `.env` | AI API key (auto-created on first launch) |
 | `browser_state.json` | Saved Monarch login session |
 | `insights.json` | Latest AI analysis output |
 | `payment_overrides.json` | Variable payment amounts you've set |

@@ -12,6 +12,16 @@ from datetime import date, timedelta
 from typing import Optional
 
 
+def _prev_business_day(d: date, n: int) -> date:
+    """Return the date n business days before d, skipping weekends."""
+    result = d
+    while n > 0:
+        result -= timedelta(days=1)
+        if result.weekday() < 5:  # 0=Mon … 4=Fri
+            n -= 1
+    return result
+
+
 def _next_dates_for_recurring(item: dict, today: date, horizon: date) -> list[date]:
     """
     Determine which dates within [today, horizon] a recurring item will hit.
@@ -167,7 +177,10 @@ def _dedup_events(
             if (cal_amt < 0) != (m_amt < 0):
                 continue
             larger = max(abs(m_amt), abs(cal_amt))
-            same_amount = larger == 0 or abs(m_amt - cal_amt) / larger <= amount_tolerance_pct
+            if larger == 0:
+                same_amount = True  # both are $0 — treat as matching amount
+            else:
+                same_amount = abs(m_amt - cal_amt) / larger <= amount_tolerance_pct
             same_date = abs((m_evt["date"] - cal_evt["date"]).days) <= tolerance_days
             if same_amount and same_date:
                 is_dup = True
@@ -350,7 +363,7 @@ def _add_recommendation(recommendations, days, start_idx, end_idx, buffer_thresh
     dip_date = days[start_idx]["date"]
 
     # Suggest transferring 3 business days before the dip starts (same-day fallback: dip date itself)
-    transfer_by_date = date.fromisoformat(dip_date) - timedelta(days=3)
+    transfer_by_date = _prev_business_day(date.fromisoformat(dip_date), 3)
     if transfer_by_date < date.today():
         transfer_by_date = date.fromisoformat(dip_date)
 

@@ -9,6 +9,7 @@ import re
 import subprocess
 import sys
 import threading
+import uuid
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
@@ -27,6 +28,7 @@ app = Flask(__name__)
 _CONFIG_PATH = Path(__file__).parent / "config.yaml"
 _INSIGHTS_FILE = Path(__file__).parent / "insights.json"
 _USER_CONTEXT_FILE = Path(__file__).parent / "user_context.md"
+_USER_CONTEXT_TEMPLATE = "# AI Corrections\n\n"  # default when file doesn't exist yet
 _PAYMENT_OVERRIDES_FILE = Path(__file__).parent / "payment_overrides.json"
 _PAYMENT_SKIPS_FILE = Path(__file__).parent / "payment_skips.json"
 _PAYMENT_MONTHLY_AMOUNTS_FILE = Path(__file__).parent / "payment_monthly_amounts.json"
@@ -36,6 +38,18 @@ _ACCOUNTS_CACHE_FILE = Path(__file__).parent / "monarch_accounts_cache.json"
 _cache: dict = {}        # computed forecast — cleared by settings changes
 _monarch_raw: dict = {}  # raw Monarch data (balance, transactions, recurring)
                          # survives settings changes; only reset by /refresh or account change
+
+
+def _atomic_write(path: Path, content: str) -> None:
+    """Write *content* to *path* atomically.
+
+    Writes to a sibling .tmp file first, then uses os.replace() to swap it
+    into place — so readers always see a complete file even if the process
+    is interrupted mid-write.
+    """
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(content, encoding="utf-8")
+    os.replace(tmp, path)
 
 
 def _clear_forecast_cache():
@@ -102,7 +116,44 @@ def _write_corrections(corrections: list[dict]) -> None:
     file_lines = ["# AI Corrections", ""]
     for c in corrections:
         file_lines.append(f"- [{c['date']}] [{c['type']}] {c['text']}")
-    _USER_CONTEXT_FILE.write_text("\n".join(file_lines) + "\n")
+    _atomic_write(_USER_CONTEXT_FILE, "\n".join(file_lines) + "\n")
+
+
+def _check_list_schema(
+    path: Path,
+    data: object,
+    required_str_keys: tuple[str, ...] = (),
+    required_num_keys: tuple[str, ...] = (),
+) -> list[dict]:
+    """
+    Validate that *data* is a list of dicts with the expected key types.
+
+    Returns a filtered list containing only records that pass validation.
+    Logs a warning (to stdout) for each dropped record — never raises.
+    """
+    if not isinstance(data, list):
+        print(f"[schema] {path.name}: expected a list, got {type(data).__name__} — ignoring file")
+        return []
+    good = []
+    for i, item in enumerate(data):
+        if not isinstance(item, dict):
+            print(f"[schema] {path.name}[{i}]: expected dict, got {type(item).__name__} — skipping")
+            continue
+        bad = False
+        for k in required_str_keys:
+            if not isinstance(item.get(k), str) or not item[k].strip():
+                print(f"[schema] {path.name}[{i}]: missing/invalid string field '{k}' — skipping")
+                bad = True
+                break
+        if not bad:
+            for k in required_num_keys:
+                if not isinstance(item.get(k), (int, float)):
+                    print(f"[schema] {path.name}[{i}]: missing/invalid numeric field '{k}' — skipping")
+                    bad = True
+                    break
+        if not bad:
+            good.append(item)
+    return good
 
 
 def _load_scenarios() -> list[dict]:
@@ -110,7 +161,12 @@ def _load_scenarios() -> list[dict]:
     if not _SCENARIOS_FILE.exists():
         return []
     try:
-        return json.loads(_SCENARIOS_FILE.read_text())
+        data = json.loads(_SCENARIOS_FILE.read_text())
+        return _check_list_schema(
+            _SCENARIOS_FILE, data,
+            required_str_keys=("date", "description"),
+            required_num_keys=("amount",),
+        )
     except Exception:
         return []
 
@@ -144,7 +200,21 @@ def _load_payment_overrides() -> dict:
     if not _PAYMENT_OVERRIDES_FILE.exists():
         return {}
     try:
-        return json.loads(_PAYMENT_OVERRIDES_FILE.read_text())
+        data = json.loads(_PAYMENT_OVERRIDES_FILE.read_text())
+        if not isinstance(data, dict):
+            print(f"[schema] {_PAYMENT_OVERRIDES_FILE.name}: expected a dict — ignoring file")
+            return {}
+        # Filter entries whose value is not a dict or is missing required keys
+        good = {}
+        for k, v in data.items():
+            if not isinstance(v, dict):
+                print(f"[schema] {_PAYMENT_OVERRIDES_FILE.name}[{k!r}]: expected dict value — skipping")
+                continue
+            if not isinstance(v.get("name"), str) or not isinstance(v.get("amount"), (int, float)):
+                print(f"[schema] {_PAYMENT_OVERRIDES_FILE.name}[{k!r}]: missing name/amount — skipping")
+                continue
+            good[k] = v
+        return good
     except Exception:
         return {}
 
@@ -154,7 +224,11 @@ def _load_payment_skips() -> list:
     if not _PAYMENT_SKIPS_FILE.exists():
         return []
     try:
-        return json.loads(_PAYMENT_SKIPS_FILE.read_text())
+        data = json.loads(_PAYMENT_SKIPS_FILE.read_text())
+        return _check_list_schema(
+            _PAYMENT_SKIPS_FILE, data,
+            required_str_keys=("name", "month"),
+        )
     except Exception:
         return []
 
@@ -164,7 +238,12 @@ def _load_payment_monthly_amounts() -> list:
     if not _PAYMENT_MONTHLY_AMOUNTS_FILE.exists():
         return []
     try:
-        return json.loads(_PAYMENT_MONTHLY_AMOUNTS_FILE.read_text())
+        data = json.loads(_PAYMENT_MONTHLY_AMOUNTS_FILE.read_text())
+        return _check_list_schema(
+            _PAYMENT_MONTHLY_AMOUNTS_FILE, data,
+            required_str_keys=("name",),
+            required_num_keys=("amount",),
+        )
     except Exception:
         return []
 
@@ -197,13 +276,13 @@ def _update_env_key(key: str, value: str) -> None:
             break
     if not found:
         lines.append(f"{key}={value}")
-    _ENV_PATH.write_text("\n".join(lines) + "\n")
+    _atomic_write(_ENV_PATH, "\n".join(lines) + "\n")
     os.environ[key] = value  # pick up immediately without restart
 
 
 def _save_config(config: dict) -> None:
     """Write config dict back to config.yaml."""
-    _CONFIG_PATH.write_text(yaml.dump(config, default_flow_style=False, allow_unicode=True))
+    _atomic_write(_CONFIG_PATH, yaml.dump(config, default_flow_style=False, allow_unicode=True))
 
 
 def _deep_merge(base: dict, updates: dict) -> dict:
@@ -621,7 +700,7 @@ def api_feedback():
     else:
         content = content.rstrip() + f"\n\n## Corrections\n{bullet}\n"
 
-    _USER_CONTEXT_FILE.write_text(content)
+    _atomic_write(_USER_CONTEXT_FILE, content)
     return jsonify({"ok": True, "bullet": bullet})
 
 
@@ -660,7 +739,7 @@ def api_set_payment_override():
             "updated": datetime.now().strftime("%Y-%m-%d"),
         }
 
-    _PAYMENT_OVERRIDES_FILE.write_text(json.dumps(overrides, indent=2))
+    _atomic_write(_PAYMENT_OVERRIDES_FILE, json.dumps(overrides, indent=2))
     _clear_forecast_cache()  # recompute forecast with new override (Monarch data reused)
     return jsonify({"ok": True})
 
@@ -697,7 +776,7 @@ def api_payment_skips():
             "note":  (body.get("note") or "").strip(),
         })
 
-    _PAYMENT_SKIPS_FILE.write_text(json.dumps(skips, indent=2))
+    _atomic_write(_PAYMENT_SKIPS_FILE, json.dumps(skips, indent=2))
     _clear_forecast_cache()
     return jsonify({"ok": True})
 
@@ -742,7 +821,7 @@ def api_payment_monthly_amounts():
             "note":    (body.get("note") or "").strip(),
         })
 
-    _PAYMENT_MONTHLY_AMOUNTS_FILE.write_text(json.dumps(records, indent=2))
+    _atomic_write(_PAYMENT_MONTHLY_AMOUNTS_FILE, json.dumps(records, indent=2))
     _clear_forecast_cache()
     return jsonify({"ok": True})
 
@@ -783,7 +862,7 @@ def api_set_scenarios():
             return jsonify({"error": "date must be YYYY-MM-DD"}), 400
         frequency = (body.get("frequency") or "one-time").strip()
         scenarios.append({
-            "id": f"s{int(datetime.now().timestamp() * 1000)}",
+            "id": f"s{uuid.uuid4().hex[:8]}",
             "date": date_str,
             "description": description,
             "amount": float(amount),  # positive = inflow, negative = outflow
@@ -791,7 +870,7 @@ def api_set_scenarios():
             "created": datetime.now().strftime("%Y-%m-%d"),
         })
 
-    _SCENARIOS_FILE.write_text(json.dumps(scenarios, indent=2))
+    _atomic_write(_SCENARIOS_FILE, json.dumps(scenarios, indent=2))
     _clear_forecast_cache()  # recompute forecast with updated scenarios (Monarch data reused)
     return jsonify({"ok": True})
 
@@ -957,7 +1036,7 @@ def api_settings_app():
 def api_settings_user_context():
     body = request.get_json(force=True) or {}
     content = body.get("content", "")
-    _USER_CONTEXT_FILE.write_text(content)
+    _atomic_write(_USER_CONTEXT_FILE, content)
     return jsonify({"ok": True})
 
 
@@ -1219,7 +1298,7 @@ def api_monarch_accounts():
         return jsonify({"error": msg}), 500
 
     compact = [_compact_account(a) for a in accounts if _is_bill_paying_account(a)]
-    _ACCOUNTS_CACHE_FILE.write_text(json.dumps(compact, indent=2))
+    _atomic_write(_ACCOUNTS_CACHE_FILE, json.dumps(compact, indent=2))
     return jsonify(compact)
 
 

@@ -536,6 +536,37 @@
 </head>
 <body>
 
+<!-- ── Toast notification ──────────────────────────────────────────────────── -->
+<div id="_toast" role="alert" aria-live="assertive" style="
+  display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  padding:10px 18px;border-radius:10px;font-size:0.84rem;font-weight:500;
+  max-width:min(480px,90vw);text-align:center;z-index:9999;
+  box-shadow:0 4px 20px rgba(0,0,0,0.18);pointer-events:none;
+  transition:opacity 0.3s ease;
+"></div>
+<script>
+(function() {
+  var _toastTimer = null;
+  function _showToast(msg, isError) {
+    var el = document.getElementById('_toast');
+    if (!el) return;
+    clearTimeout(_toastTimer);
+    el.textContent = msg;
+    el.style.background   = isError ? '#ff3b30' : '#1c1c1e';
+    el.style.color        = '#fff';
+    el.style.border       = isError ? '1px solid rgba(255,255,255,0.2)' : 'none';
+    el.style.opacity      = '1';
+    el.style.display      = 'block';
+    _toastTimer = setTimeout(function() {
+      el.style.opacity = '0';
+      setTimeout(function() { el.style.display = 'none'; }, 320);
+    }, 4000);
+  }
+  window.showError = function(msg)  { _showToast(msg, true);  };
+  window.showInfo  = function(msg)  { _showToast(msg, false); };
+})();
+</script>
+
 <header>
   <div>
     <h1>Balance Forecast</h1>
@@ -969,7 +1000,7 @@
 
     // Narrative
     if (data.narrative) {
-      html += '<div class="ai-narrative">' + escHtml(data.narrative) + '</div>';
+      html += '<div class="ai-narrative">' + _escHtml(data.narrative) + '</div>';
     }
 
     // Transfer recommendation
@@ -979,10 +1010,10 @@
       html += '<div class="ai-section-title">Recommended Transfer</div>';
       html += '<div class="ai-transfer-box">';
       html += '<div class="ai-transfer-amount">$' + rec.amount.toLocaleString() + '</div>';
-      html += '<div class="ai-transfer-meta">from ' + escHtml(rec.source_account || 'Savings') +
-              ' &mdash; transfer by ' + escHtml(rec.transfer_by || '?') + '</div>';
+      html += '<div class="ai-transfer-meta">from ' + _escHtml(rec.source_account || 'Savings') +
+              ' &mdash; transfer by ' + _escHtml(rec.transfer_by || '?') + '</div>';
       if (rec.reasoning) {
-        html += '<div class="ai-transfer-reasoning">' + escHtml(rec.reasoning) + '</div>';
+        html += '<div class="ai-transfer-reasoning">' + _escHtml(rec.reasoning) + '</div>';
       }
       html += '</div></div>';
     }
@@ -1011,8 +1042,8 @@
         var freqStr = freq ? ' \u00b7 ' + freq : (items.length > 1 ? ' \u00d7' + items.length : '');
         var titleDates = items.map(function(p){return p.date||'';}).join(', ');
         html += '<span class="evt-pill predicted debit" style="opacity:' + opacity + '" title="' +
-                escHtml(titleDates) + ' &bull; ' + conf + ' confidence">' +
-                escHtml(rep.description || '') + ' ' + escHtml(amt) + escHtml(freqStr) + '</span>';
+                _escHtml(titleDates) + ' &bull; ' + conf + ' confidence">' +
+                _escHtml(rep.description || '') + ' ' + _escHtml(amt) + _escHtml(freqStr) + '</span>';
       });
       html += '</div></div>';
     }
@@ -1025,11 +1056,11 @@
       surpluses.forEach(function(s) {
         html += '<div class="ai-surplus-item">';
         html += '<div style="display:flex;align-items:baseline;gap:10px;">';
-        html += '<span class="ai-surplus-period">' + escHtml(s.period || '') + '</span>';
+        html += '<span class="ai-surplus-period">' + _escHtml(s.period || '') + '</span>';
         html += '<span class="ai-surplus-amount">+$' + (s.estimated_surplus || 0).toLocaleString() + ' surplus</span>';
         html += '</div>';
         if (s.suggested_allocation) {
-          html += '<div class="ai-surplus-allocation">' + escHtml(s.suggested_allocation) + '</div>';
+          html += '<div class="ai-surplus-allocation">' + _escHtml(s.suggested_allocation) + '</div>';
         }
         html += '</div>';
       });
@@ -1042,7 +1073,7 @@
       html += '<div class="ai-section">';
       html += '<div class="ai-section-title">Risk Flags</div>';
       flags.forEach(function(f) {
-        html += '<div class="ai-flag">⚠ ' + escHtml(f) + '</div>';
+        html += '<div class="ai-flag">⚠ ' + _escHtml(f) + '</div>';
       });
       html += '</div>';
     }
@@ -1051,7 +1082,7 @@
     if (data.seasonal_notes) {
       html += '<div class="ai-section">';
       html += '<div class="ai-section-title">Seasonal Notes</div>';
-      html += '<div class="ai-seasonal">' + escHtml(data.seasonal_notes) + '</div>';
+      html += '<div class="ai-seasonal">' + _escHtml(data.seasonal_notes) + '</div>';
       html += '</div>';
     }
 
@@ -1093,20 +1124,15 @@
     loadCorrections();
   }
 
-  function escHtml(str) {
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
-
   // Expose globally so correction handlers and the on-load poller can call it
   window.loadAiInsights = function() {
     fetch('/api/ai-insights')
       .then(function(r) { return r.json(); })
       .then(function(data) { renderAiInsights(data); })
-      .catch(function() {});
+      .catch(function() {
+        var content = document.getElementById('aiContent');
+        if (content) content.innerHTML = '<p style="color:#ff3b30;font-size:0.82rem;">Could not load AI insights. Check the server log.</p>';
+      });
   };
 
   // Fetch asynchronously so it doesn't block the chart
@@ -1116,7 +1142,7 @@
   fetch('/api/ai-analysis-status')
     .then(function(r) { return r.json(); })
     .then(function(s) {
-      if (!s.running) return;
+      if (!s.running) { window.loadAiInsights(); return; }
       var btn = document.getElementById('dashRunAiBtn');
       var aiPanel = document.getElementById('aiPanel');
       if (btn) { btn.textContent = 'Running\u2026'; btn.disabled = true; btn.style.color = '#ff9500'; }
@@ -1172,7 +1198,10 @@ function loadCorrections() {
   fetch('/api/corrections')
     .then(function(r) { return r.json(); })
     .then(function(data) { renderCorrections(data.corrections || []); })
-    .catch(function() {});
+    .catch(function() {
+      var list = document.getElementById('correctionList');
+      if (list) list.innerHTML = '<p style="color:#ff3b30;font-size:0.82rem;">Could not load corrections. Check the server log.</p>';
+    });
 }
 
 function _corrTypePill(type) {
@@ -1252,7 +1281,7 @@ function submitCorrection() {
       _afterCorrection();
     }
   })
-  .catch(function() {})
+  .catch(function() { showError('Could not save correction. Check the server log.'); })
   .finally(function() {
     if (btn) { btn.textContent = 'Save'; btn.disabled = false; }
   });
@@ -1269,7 +1298,7 @@ function deleteCorrection(idx) {
   })
   .then(function(r) { return r.json(); })
   .then(function() { _afterCorrection(); })
-  .catch(function() { alert('Could not delete correction.'); });
+  .catch(function() { showError('Could not delete correction.'); });
 }
 
 function clearAllCorrections() {
@@ -1281,7 +1310,7 @@ function clearAllCorrections() {
   })
   .then(function(r) { return r.json(); })
   .then(function() { _afterCorrection(); })
-  .catch(function() { alert('Could not clear corrections.'); });
+  .catch(function() { showError('Could not clear corrections.'); });
 }
 
 function renderPayOverrides(data) {
@@ -1326,7 +1355,7 @@ function savePayOverride() {
   var name   = document.getElementById('povName').value.trim();
   var amount = document.getElementById('povAmount').value;
   var note   = document.getElementById('povNote').value.trim();
-  if (!name || !amount) { alert('Name and amount are required.'); return; }
+  if (!name || !amount) { showError('Name and amount are required.'); return; }
 
   var btn = document.querySelector('#payOverrideCard .pay-override-form button');
   var origText = btn.textContent;
@@ -1382,7 +1411,7 @@ function clearPayOverride(nameKey) {
   })
   .then(function(r) { return r.json(); })
   .then(loadPayOverrides)
-  .catch(function() { alert('Could not delete override. Check the server log.'); });
+  .catch(function() { showError('Could not delete override. Check the server log.'); });
 }
 
 loadPayOverrides();
@@ -1427,7 +1456,7 @@ function savePaySkip() {
   var name  = document.getElementById('pskName').value.trim();
   var month = document.getElementById('pskMonth').value;
   var note  = document.getElementById('pskNote').value.trim();
-  if (!name || !month) { alert('Name and month are required.'); return; }
+  if (!name || !month) { showError('Name and month are required.'); return; }
 
   var btn = document.querySelector('#paySkipForm button');
   var origText = btn.textContent;
@@ -1482,7 +1511,7 @@ function clearPaySkip(name, month) {
   })
   .then(function(r) { return r.json(); })
   .then(loadPaySkips)
-  .catch(function() { alert('Could not remove skip. Check the server log.'); });
+  .catch(function() { showError('Could not remove skip. Check the server log.'); });
 }
 
 loadPaySkips();
@@ -1599,7 +1628,7 @@ function pillSkipMonth(desc, month) {
   })
   .then(function(r) { return r.json(); })
   .then(function() { loadPaySkips(); showStaleBanner('"' + desc + '" skipped for ' + label); })
-  .catch(function() { alert('Could not save skip. Check the server log.'); });
+  .catch(function() { showError('Could not save skip. Check the server log.'); });
 }
 
 function pillOverrideAmountExpand(desc, currentAmount) {
@@ -1622,7 +1651,7 @@ function pillOverrideAmountSave(desc, sign) {
   sign = (sign >= 0) ? 1 : -1;
   var input = document.getElementById('pillAmtInput');
   var val = parseFloat(input.value);
-  if (isNaN(val) || val < 0) { alert('Enter a valid positive amount.'); return; }
+  if (isNaN(val) || val < 0) { showError('Enter a valid positive amount.'); return; }
   _closePillPopover();
   fetch('/api/payment-overrides', {
     method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -1630,7 +1659,7 @@ function pillOverrideAmountSave(desc, sign) {
   })
   .then(function(r) { return r.json(); })
   .then(function() { loadPayOverrides(); showStaleBanner('"' + desc + '" amount overridden'); })
-  .catch(function() { alert('Could not save override. Check the server log.'); });
+  .catch(function() { showError('Could not save override. Check the server log.'); });
 }
 
 function pillEditOccurrence(desc, date, currentAmount) {
@@ -1658,7 +1687,7 @@ function pillEditOccurrenceSave(desc, date, sign) {
   sign = (sign >= 0) ? 1 : -1;
   var input = document.getElementById('pillAmtInput');
   var val = parseFloat(input.value);
-  if (isNaN(val) || val < 0) { alert('Enter a valid positive amount.'); return; }
+  if (isNaN(val) || val < 0) { showError('Enter a valid positive amount.'); return; }
   _closePillPopover();
   fetch('/api/payment-monthly-amounts', {
     method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -1668,7 +1697,7 @@ function pillEditOccurrenceSave(desc, date, sign) {
   .then(function() {
     window.location.reload();  // immediately recalculate so user sees only this occurrence changed
   })
-  .catch(function() { alert('Could not save. Check the server log.'); });
+  .catch(function() { showError('Could not save. Check the server log.'); });
 }
 
 function pillSuppress(desc) {
@@ -1680,12 +1709,12 @@ function pillSuppress(desc) {
   })
   .then(function(r) { return r.json(); })
   .then(function() { loadPayOverrides(); showStaleBanner('"' + desc + '" suppressed from forecast'); })
-  .catch(function() { alert('Could not suppress. Check the server log.'); });
+  .catch(function() { showError('Could not suppress. Check the server log.'); });
 }
 
 function pillDeleteScenario(sid, desc) {
   if (!confirm('Delete scenario event "' + desc + '"?')) return;
-  if (!sid) { alert('Cannot delete: event ID missing. Use the Scenario Modeling card instead.'); return; }
+  if (!sid) { showError('Cannot delete: event ID missing. Use the Scenario Modeling card instead.'); return; }
   _closePillPopover();
   fetch('/api/scenarios', {
     method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -1693,7 +1722,7 @@ function pillDeleteScenario(sid, desc) {
   })
   .then(function(r) { return r.json(); })
   .then(function() { showStaleBanner('"' + desc + '" scenario deleted'); })
-  .catch(function() { alert('Could not delete scenario. Check the server log.'); });
+  .catch(function() { showError('Could not delete scenario. Check the server log.'); });
 }
 </script>
 
@@ -1748,7 +1777,7 @@ function addScenarioEvent() {
   var sign   = parseFloat(document.getElementById('scnSign').value);
   var freq   = document.getElementById('scnFreq').value;
   if (!date || !desc || isNaN(amount) || amount <= 0) {
-    alert('Date, description, and a positive amount are required.');
+    showError('Date, description, and a positive amount are required.');
     return;
   }
   var btn = document.querySelector('#scenarioCard .scenario-form button');
@@ -1794,7 +1823,7 @@ function deleteScenario(id) {
     var hint = document.getElementById('scenarioRefreshHint');
     if (hint) { hint.style.display = 'block'; clearTimeout(hint._hideTimer); }
   })
-  .catch(function() { alert('Could not remove scenario. Check the server log.'); });
+  .catch(function() { showError('Could not remove scenario. Check the server log.'); });
 }
 
 function clearAllScenarios() {
@@ -1806,7 +1835,7 @@ function clearAllScenarios() {
   })
   .then(function(r) { return r.json(); })
   .then(function() { window.location.href = '/refresh'; })
-  .catch(function() { alert('Could not clear scenarios. Check the server log.'); });
+  .catch(function() { showError('Could not clear scenarios. Check the server log.'); });
 }
 
 loadScenarios();

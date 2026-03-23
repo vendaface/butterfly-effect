@@ -124,9 +124,10 @@
     }
     .field-control { flex: 1; }
     .input-dollar { position: relative; display: inline-flex; align-items: center; flex: 1; min-width: 0; }
-    .input-dollar::before { content: '$'; position: absolute; left: 8px;
-      color: var(--text-secondary); font-size: 0.84rem; pointer-events: none; }
-    .input-dollar input { padding-left: 24px; width: 100%; box-sizing: border-box; }
+    .input-dollar::before { content: '$'; position: absolute; left: 10px;
+      color: var(--text-secondary); font-size: 0.84rem; pointer-events: none; z-index: 1; }
+    .input-dollar input { padding-left: 26px; width: 100%; box-sizing: border-box; }
+    .input-dollar input[type="number"] { padding-left: 26px; -webkit-padding-start: 26px; }
 
     /* Inputs */
     input[type="text"], input[type="number"], input[type="password"],
@@ -391,6 +392,37 @@
   </style>
 </head>
 <body>
+
+<!-- ── Toast notification ──────────────────────────────────────────────────── -->
+<div id="_toast" role="alert" aria-live="assertive" style="
+  display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  padding:10px 18px;border-radius:10px;font-size:0.84rem;font-weight:500;
+  max-width:min(480px,90vw);text-align:center;z-index:9999;
+  box-shadow:0 4px 20px rgba(0,0,0,0.18);pointer-events:none;
+  transition:opacity 0.3s ease;
+"></div>
+<script>
+(function() {
+  var _toastTimer = null;
+  function _showToast(msg, isError) {
+    var el = document.getElementById('_toast');
+    if (!el) return;
+    clearTimeout(_toastTimer);
+    el.textContent = msg;
+    el.style.background   = isError ? '#ff3b30' : '#1c1c1e';
+    el.style.color        = '#fff';
+    el.style.border       = isError ? '1px solid rgba(255,255,255,0.2)' : 'none';
+    el.style.opacity      = '1';
+    el.style.display      = 'block';
+    _toastTimer = setTimeout(function() {
+      el.style.opacity = '0';
+      setTimeout(function() { el.style.display = 'none'; }, 320);
+    }, 4000);
+  }
+  window.showError = function(msg)  { _showToast(msg, true);  };
+  window.showInfo  = function(msg)  { _showToast(msg, false); };
+})();
+</script>
 
 <header>
   <div>
@@ -999,7 +1031,7 @@ function saveSection(section) {
       });
       if (data.restart_required) {
         setTimeout(function() {
-          alert('App settings saved. Click "Restart Server" for changes to take effect.');
+          showInfo('App settings saved. Click "Restart Server" for changes to take effect.');
         }, 400);
       }
     } else {
