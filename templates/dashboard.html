@@ -138,6 +138,11 @@
       0%, 100% { box-shadow: 0 0 0 0 rgba(0,113,227,0); }
       50% { box-shadow: 0 0 0 4px rgba(0,113,227,0.18); }
     }
+    [data-theme="dark"] .ai-panel.running { animation: ai-pulse-dark 2s ease-in-out infinite; }
+    @keyframes ai-pulse-dark {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(64,156,255,0); }
+      50% { box-shadow: 0 0 0 6px rgba(64,156,255,0.55); }
+    }
     .settings-link {
       background: none;
       color: var(--text-secondary);
