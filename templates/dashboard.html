@@ -780,7 +780,7 @@
     <p class="meta" style="margin:0 0 10px;">Remove one specific month's occurrence without affecting other months.</p>
     <div id="paySkipList"><span style="font-size:0.82rem;color:#aeaeb2;font-style:italic;">Loading…</span></div>
     <div class="pay-override-form" id="paySkipForm">
-      <input id="pskName"  type="text"  placeholder="Recurring item name (e.g. Brown University)" style="flex:2;" />
+      <input id="pskName"  type="text"  placeholder="Recurring item name (e.g. Gym Membership)" style="flex:2;" />
       <input id="pskMonth" type="month" title="Month to skip" />
       <input id="pskNote"  type="text"  placeholder="Note (optional)" />
       <button onclick="savePaySkip()">Skip Month</button>
@@ -1005,7 +1005,8 @@
     return 'Unknown action';
   }
 
-  function applyAiSuggestion(btn, suggestionJson) {
+  // Exposed on window so inline onclick handlers can reach them from outside the IIFE
+  window.applyAiSuggestion = function(btn, suggestionJson) {
     var s = JSON.parse(suggestionJson);
     btn.textContent = 'Applying\u2026'; btn.disabled = true;
     fetch('/api/ai-suggestions/apply', {
@@ -1027,9 +1028,9 @@
       showError('Could not apply suggestion.');
       btn.textContent = 'Apply'; btn.disabled = false;
     });
-  }
+  };
 
-  function dismissAiSuggestion(card, suggestionJson) {
+  window.dismissAiSuggestion = function(card, suggestionJson) {
     var s = JSON.parse(suggestionJson);
     fetch('/api/ai-suggestions/dismiss', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -1037,7 +1038,7 @@
     })
     .then(function() { if (card && card.parentNode) card.parentNode.removeChild(card); })
     .catch(function() { showError('Could not dismiss suggestion.'); });
-  }
+  };
 
   // ─────────────────────────────────────────────────────────────────────────────
 
