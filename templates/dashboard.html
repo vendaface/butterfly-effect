@@ -697,7 +697,7 @@
 <div class="ai-panel" id="aiPanel" style="display:none;">
   <div class="ai-header">
     <button id="aiCollapseBtn" onclick="toggleAiPanel()" title="Collapse"
-            style="background:none;border:none;cursor:pointer;font-size:0.85rem;line-height:1;color:var(--text-tertiary);padding:0 4px 0 0;flex-shrink:0;transition:color 0.15s;">▾</button>
+            style="background:none;border:none;cursor:pointer;font-size:0.75rem;line-height:1;color:var(--text-tertiary);padding:0 4px 0 0;flex-shrink:0;transition:transform 0.2s;display:inline-block;">&#9660;</button>
     <h2>AI Insights</h2>
     <span class="ai-status loading" id="aiStatus">Loading…</span>
     <button id="dashRunAiBtn" onclick="dashRunAiAnalysis()"
@@ -1269,12 +1269,12 @@
     var collapsed = localStorage.getItem('_aiPanelCollapsed') === '1';
     if (collapsed) {
       if (content) content.style.display = '';
-      if (btn) { btn.textContent = '\u25be'; btn.title = 'Collapse'; }
+      if (btn) { btn.style.transform = ''; btn.title = 'Collapse'; }
       localStorage.removeItem('_aiPanelCollapsed');
     } else {
       if (content) content.style.display = 'none';
       if (runLog && runLog.style.display !== 'none') runLog.style.display = 'none';
-      if (btn) { btn.textContent = '\u25b8'; btn.title = 'Expand'; }
+      if (btn) { btn.style.transform = 'rotate(-90deg)'; btn.title = 'Expand'; }
       localStorage.setItem('_aiPanelCollapsed', '1');
     }
   };
@@ -1285,7 +1285,7 @@
       var c = document.getElementById('aiContent');
       var b = document.getElementById('aiCollapseBtn');
       if (c) c.style.display = 'none';
-      if (b) { b.textContent = '\u25b8'; b.title = 'Expand'; }
+      if (b) { b.style.transform = 'rotate(-90deg)'; b.title = 'Expand'; }
     }
   })();
 
