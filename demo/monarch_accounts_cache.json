@@ -1,0 +1,38 @@
+[
+  {
+    "id": "583291047362814650",
+    "name": "Joint Checking (...4521)",
+    "balance": 3800.00,
+    "type": "depository"
+  },
+  {
+    "id": "583291047482601983",
+    "name": "High-Yield Savings (...7788)",
+    "balance": 22400.00,
+    "type": "depository"
+  },
+  {
+    "id": "583291047593814729",
+    "name": "Home Equity Line of Credit",
+    "balance": 48200.00,
+    "type": "credit"
+  },
+  {
+    "id": "583291047704927816",
+    "name": "Toyota Auto Loan",
+    "balance": 11320.00,
+    "type": "loan"
+  },
+  {
+    "id": "583291047815040903",
+    "name": "Apple Card (...8812)",
+    "balance": 485.00,
+    "type": "credit"
+  },
+  {
+    "id": "583291047926153990",
+    "name": "Chase Sapphire (...3341)",
+    "balance": 380.00,
+    "type": "credit"
+  }
+]

@@ -1,0 +1,42 @@
+{
+  "generated_at": "2026-03-23T08:15:42.318294",
+  "token_usage": {
+    "input_tokens": 9840,
+    "output_tokens": 412,
+    "cost_usd": 0.0341
+  },
+  "narrative": "Your balance is on track to dip below your $2,000 buffer around April 1st when your mortgage and internet bill land before your next paycheck. A $1,100 transfer from savings before March 27th keeps everything comfortable. After your mid-April paycheck you'll have solid runway — over $6,600 — through the end of the month, with a healthy $5,700 projected heading into the first week of May.",
+  "predicted_expenses": [
+    {
+      "date": "2026-04-28",
+      "description": "Annual HOA dues",
+      "amount": -450.00,
+      "confidence": "medium"
+    },
+    {
+      "date": "2026-05-05",
+      "description": "Vehicle registration renewal",
+      "amount": -285.00,
+      "confidence": "high"
+    }
+  ],
+  "transfer_recommendation": {
+    "amount": 1100.00,
+    "source_account": "High-Yield Savings (...7788)",
+    "transfer_by": "2026-03-27",
+    "reasoning": "Your balance will fall to approximately $940 on April 1st — $1,060 below your $2,000 buffer — when the mortgage (-$2,280) and internet (-$95) hit simultaneously. Transferring $1,100 from savings before March 27th covers the gap with a small cushion.",
+    "is_minimal": false
+  },
+  "surplus_alerts": [
+    {
+      "period": "late April",
+      "estimated_surplus": 5900.00,
+      "suggested_allocation": "Consider putting $2,000 toward your HELOC principal before May 1st. At ~7.5% APR, each $2,000 payment saves roughly $12.50/month in interest going forward."
+    }
+  ],
+  "risk_flags": [
+    "Apr 1–3: balance drops to $940, which is $1,060 below your $2,000 buffer — transfer from savings recommended before Mar 27",
+    "HELOC balance of $48,200 at ~7.5% APR is costing roughly $300/month in interest; accelerating paydown would meaningfully improve long-term cash flow"
+  ],
+  "seasonal_notes": "April historically runs $150–200 higher on dining and entertainment based on your spending patterns — worth building in a little extra flexibility for discretionary spending this month."
+}

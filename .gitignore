@@ -37,3 +37,14 @@ __pycache__/
 payment_monthly_amounts.json
 payment_skips.json
 scenarios.json
+
+# Demo mode — all demo/ files are intentional, public demo data.
+# Exceptions must come AFTER the patterns they override.
+!demo/config.yaml
+!demo/monarch_accounts_cache.json
+!demo/insights.json
+!demo/scenarios.json
+!demo/user_context.md
+!demo/payment_skips.json
+# demo/backup/ is created at runtime — do NOT track it
+demo/backup/

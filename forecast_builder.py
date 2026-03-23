@@ -11,7 +11,10 @@ Owns:
     overrides, calendar, AI/scenario injection, and the forecast engine call
 """
 
+import json
+import time
 from datetime import date, datetime, timedelta
+from pathlib import Path
 
 import calendar_client
 import forecast as forecast_engine
@@ -151,6 +154,16 @@ def _get_forecast_data(config: dict) -> dict:
     overrides/exclusions, loads AI predictions + scenarios, calls the forecast
     engine, caches and returns the result.
     """
+    # Demo mode: serve pre-built forecast from disk so screenshots work without Monarch.
+    # Enable by setting  demo_mode: true  in config.yaml.
+    if config.get("demo_mode"):
+        _demo = Path(__file__).parent / "demo" / "forecast_data.json"
+        if _demo.exists():
+            data = json.loads(_demo.read_text())
+            _cache["data"] = data
+            _cache["ts"] = time.time()
+            return data
+
     if _cache:
         return _cache
 

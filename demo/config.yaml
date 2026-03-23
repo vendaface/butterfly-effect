@@ -1,0 +1,28 @@
+ai:
+  enabled: true
+  history_months: 13
+  insights_max_age_hours: 8760   # 1 year — demo insights never expire
+  model: claude-sonnet-4-5
+  provider: anthropic
+
+app:
+  debug: false
+  port: 5002
+
+calendar:
+  enabled: false
+  ics_url: ''
+  service: google
+
+# demo_mode: serves demo/forecast_data.json instead of calling Monarch Money,
+# so the dashboard renders without a real login or account connection.
+demo_mode: true
+
+forecast:
+  buffer_threshold: 2000.0
+  exclude_recurring: []
+  horizon_days: 45
+
+monarch:
+  checking_account_id: '583291047362814650'
+  checking_account_name: 'Joint Checking (...4521)'

@@ -1,0 +1,470 @@
+{
+  "days": [
+    {
+      "date": "2026-03-23",
+      "balance": 3800.0,
+      "events": [],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-03-24",
+      "balance": 3800.0,
+      "events": [],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-03-25",
+      "balance": 3315.0,
+      "events": [
+        {
+          "description": "Apple Card",
+          "amount": -485.0,
+          "source": "monarch",
+          "scenario_id": null
+        }
+      ],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-03-26",
+      "balance": 3315.0,
+      "events": [],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-03-27",
+      "balance": 3315.0,
+      "events": [],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-03-28",
+      "balance": 3315.0,
+      "events": [],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-03-29",
+      "balance": 3315.0,
+      "events": [],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-03-30",
+      "balance": 3315.0,
+      "events": [],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-03-31",
+      "balance": 3315.0,
+      "events": [],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-04-01",
+      "balance": 940.0,
+      "events": [
+        {
+          "description": "Mortgage",
+          "amount": -2280.0,
+          "source": "monarch",
+          "scenario_id": null
+        },
+        {
+          "description": "Internet",
+          "amount": -95.0,
+          "source": "monarch",
+          "scenario_id": null
+        }
+      ],
+      "below_threshold": true
+    },
+    {
+      "date": "2026-04-02",
+      "balance": 940.0,
+      "events": [],
+      "below_threshold": true
+    },
+    {
+      "date": "2026-04-03",
+      "balance": 940.0,
+      "events": [],
+      "below_threshold": true
+    },
+    {
+      "date": "2026-04-04",
+      "balance": 4140.0,
+      "events": [
+        {
+          "description": "Paycheck",
+          "amount": 3200.0,
+          "source": "monarch",
+          "scenario_id": null
+        }
+      ],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-04-05",
+      "balance": 4140.0,
+      "events": [],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-04-06",
+      "balance": 4140.0,
+      "events": [],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-04-07",
+      "balance": 4140.0,
+      "events": [],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-04-08",
+      "balance": 3760.0,
+      "events": [
+        {
+          "description": "Chase Sapphire",
+          "amount": -380.0,
+          "source": "monarch",
+          "scenario_id": null
+        }
+      ],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-04-09",
+      "balance": 3760.0,
+      "events": [],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-04-10",
+      "balance": 3695.0,
+      "events": [
+        {
+          "description": "Gym Membership",
+          "amount": -65.0,
+          "source": "monarch",
+          "scenario_id": null
+        }
+      ],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-04-11",
+      "balance": 3695.0,
+      "events": [],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-04-12",
+      "balance": 3695.0,
+      "events": [],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-04-13",
+      "balance": 3695.0,
+      "events": [],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-04-14",
+      "balance": 3695.0,
+      "events": [],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-04-15",
+      "balance": 3465.0,
+      "events": [
+        {
+          "description": "Car Insurance",
+          "amount": -212.0,
+          "source": "monarch",
+          "scenario_id": null
+        },
+        {
+          "description": "Spotify Family",
+          "amount": -18.0,
+          "source": "monarch",
+          "scenario_id": null
+        }
+      ],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-04-16",
+      "balance": 3465.0,
+      "events": [],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-04-17",
+      "balance": 3465.0,
+      "events": [],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-04-18",
+      "balance": 6665.0,
+      "events": [
+        {
+          "description": "Paycheck",
+          "amount": 3200.0,
+          "source": "monarch",
+          "scenario_id": null
+        }
+      ],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-04-19",
+      "balance": 6665.0,
+      "events": [],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-04-20",
+      "balance": 6170.0,
+      "events": [
+        {
+          "description": "Electric",
+          "amount": -145.0,
+          "source": "monarch",
+          "scenario_id": null
+        },
+        {
+          "description": "Car service",
+          "amount": -350.0,
+          "source": "scenario",
+          "scenario_id": "s04a1b2c3"
+        }
+      ],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-04-21",
+      "balance": 6170.0,
+      "events": [],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-04-22",
+      "balance": 6098.0,
+      "events": [
+        {
+          "description": "Gas",
+          "amount": -72.0,
+          "source": "monarch",
+          "scenario_id": null
+        }
+      ],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-04-23",
+      "balance": 6098.0,
+      "events": [],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-04-24",
+      "balance": 6098.0,
+      "events": [],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-04-25",
+      "balance": 5613.0,
+      "events": [
+        {
+          "description": "Apple Card",
+          "amount": -485.0,
+          "source": "monarch",
+          "scenario_id": null
+        }
+      ],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-04-26",
+      "balance": 5613.0,
+      "events": [],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-04-27",
+      "balance": 5613.0,
+      "events": [],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-04-28",
+      "balance": 5163.0,
+      "events": [
+        {
+          "description": "Annual HOA dues",
+          "amount": -450.0,
+          "source": "predicted",
+          "scenario_id": null
+        }
+      ],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-04-29",
+      "balance": 5163.0,
+      "events": [],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-04-30",
+      "balance": 5163.0,
+      "events": [],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-05-01",
+      "balance": 2788.0,
+      "events": [
+        {
+          "description": "Mortgage",
+          "amount": -2280.0,
+          "source": "monarch",
+          "scenario_id": null
+        },
+        {
+          "description": "Internet",
+          "amount": -95.0,
+          "source": "monarch",
+          "scenario_id": null
+        }
+      ],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-05-02",
+      "balance": 5988.0,
+      "events": [
+        {
+          "description": "Paycheck",
+          "amount": 3200.0,
+          "source": "monarch",
+          "scenario_id": null
+        }
+      ],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-05-03",
+      "balance": 5988.0,
+      "events": [],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-05-04",
+      "balance": 5988.0,
+      "events": [],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-05-05",
+      "balance": 5703.0,
+      "events": [
+        {
+          "description": "Vehicle registration renewal",
+          "amount": -285.0,
+          "source": "predicted",
+          "scenario_id": null
+        }
+      ],
+      "below_threshold": false
+    },
+    {
+      "date": "2026-05-06",
+      "balance": 5703.0,
+      "events": [],
+      "below_threshold": false
+    }
+  ],
+  "transfer_recommendations": [
+    {
+      "transfer_by": "2026-03-27",
+      "amount": 1100.0,
+      "reason": "Balance drops to $940 around Apr 1 due to Mortgage (-$2,280) + Internet (-$95) before next paycheck on Apr 4"
+    }
+  ],
+  "current_balance": 3800.0,
+  "buffer_threshold": 2000.0,
+  "refreshed_at": "2026-03-23T14:22:18.432011",
+  "horizon_days": 45,
+  "has_ai_predictions": true,
+  "_recurring_raw": [
+    {
+      "name": "Paycheck",
+      "amount": 3200.0,
+      "frequency": "BIWEEKLY",
+      "baseDate": "2026-03-21"
+    },
+    {
+      "name": "Mortgage",
+      "amount": -2280.0,
+      "frequency": "MONTHLY",
+      "baseDate": "2026-04-01"
+    },
+    {
+      "name": "Internet",
+      "amount": -95.0,
+      "frequency": "MONTHLY",
+      "baseDate": "2026-04-01"
+    },
+    {
+      "name": "Chase Sapphire",
+      "amount": -380.0,
+      "frequency": "MONTHLY",
+      "baseDate": "2026-04-08"
+    },
+    {
+      "name": "Gym Membership",
+      "amount": -65.0,
+      "frequency": "MONTHLY",
+      "baseDate": "2026-04-10"
+    },
+    {
+      "name": "Car Insurance",
+      "amount": -212.0,
+      "frequency": "MONTHLY",
+      "baseDate": "2026-04-15"
+    },
+    {
+      "name": "Spotify Family",
+      "amount": -18.0,
+      "frequency": "MONTHLY",
+      "baseDate": "2026-04-15"
+    },
+    {
+      "name": "Electric",
+      "amount": -145.0,
+      "frequency": "MONTHLY",
+      "baseDate": "2026-04-20"
+    },
+    {
+      "name": "Gas",
+      "amount": -72.0,
+      "frequency": "MONTHLY",
+      "baseDate": "2026-04-22"
+    },
+    {
+      "name": "Apple Card",
+      "amount": -485.0,
+      "frequency": "MONTHLY",
+      "baseDate": "2026-03-25"
+    }
+  ]
+}
