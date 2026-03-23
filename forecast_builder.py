@@ -11,6 +11,7 @@ Owns:
     overrides, calendar, AI/scenario injection, and the forecast engine call
 """
 
+import calendar
 import json
 import time
 from datetime import date, datetime, timedelta
@@ -22,6 +23,7 @@ import monarch_client
 
 from storage import (
     _load_insights,
+    _load_payment_day_overrides,
     _load_payment_monthly_amounts,
     _load_payment_overrides,
     _load_payment_skips,
@@ -216,6 +218,26 @@ def _get_forecast_data(config: dict) -> dict:
                 item["amount"] = override_amt
             patched.append(item)
         recurring = patched
+
+    # Apply user-specified billing-day overrides (e.g. AMEX Gold always hits on the 16th)
+    day_overrides = _load_payment_day_overrides()
+    if day_overrides:
+        day_patched = []
+        for item in recurring:
+            key = (item.get("name") or "").lower()
+            if key in day_overrides:
+                target_day = day_overrides[key]["day"]
+                item = dict(item)  # shallow copy — don't mutate cached Monarch data
+                base_raw = item.get("baseDate")
+                if base_raw:
+                    try:
+                        bd = date.fromisoformat(str(base_raw)[:10])
+                        last = calendar.monthrange(bd.year, bd.month)[1]
+                        item["baseDate"] = bd.replace(day=min(target_day, last)).isoformat()
+                    except Exception:
+                        pass
+            day_patched.append(item)
+        recurring = day_patched
 
     # Fetch from Google Calendar (optional — set calendar.enabled: false in config to skip)
     cal_enabled = config.get("calendar", {}).get("enabled", True)

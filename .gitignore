@@ -35,6 +35,7 @@ __pycache__/
 
 # User data files (reset by reset script — not source controlled)
 payment_overrides.json
+payment_day_overrides.json
 payment_monthly_amounts.json
 payment_skips.json
 scenarios.json

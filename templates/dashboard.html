@@ -813,6 +813,12 @@
       to update your chart.
     </div>
   </div>
+
+  <div style="border-top:1px solid var(--border-light);margin-top:16px;padding-top:14px;">
+    <h3 style="font-size:0.85rem;font-weight:600;margin:0 0 4px;color:var(--text);">Billing Day Overrides</h3>
+    <p class="meta" style="margin:0 0 10px;">Pin a recurring item to a specific day of the month (e.g. AMEX Gold always hits on the 16th). Use the <strong>📅 Change billing day</strong> button in any Monarch pill's popover to set one.</p>
+    <div id="dayOverrideList"><span style="font-size:0.82rem;color:#aeaeb2;font-style:italic;">Loading…</span></div>
+  </div>
 </div>
 </details>
 
@@ -1323,9 +1329,9 @@
           .then(function(s2) {
             var runLog = document.getElementById('dashAiRunLog');
             if (s2.log && s2.log.length) {
-              if (runLog) { runLog.textContent = s2.log[s2.log.length - 1]; runLog.style.display = ''; }
+              if (runLog) { runLog.textContent = _aiStageLabel(s2.log); runLog.style.display = ''; }
             } else if (s2.running && runLog) {
-              runLog.textContent = 'Starting\u2026'; runLog.style.display = '';
+              runLog.textContent = _aiStageLabel(null); runLog.style.display = '';
             }
             if (!s2.running) {
               clearInterval(_dashAiPollInterval);
@@ -1346,6 +1352,20 @@
 <script>
 function _escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function _aiStageLabel(log) {
+  if (!log || !log.length) return '🦋 Waking up…';
+  var all = log.join(' ');
+  if (all.includes('✓ Insights written'))             return '✨ Bottling up the wisdom…';
+  if (all.includes('Calling Claude') ||
+      all.includes('Calling OpenAI') ||
+      all.includes('Calling Gemini'))                  return '🤖 Consulting the AI oracle… (grab a coffee)';
+  if (all.includes('Building deterministic forecast')) return '🔮 Crunching the numbers…';
+  if (all.includes('Transactions:') ||
+      all.includes('Balance:'))                        return '📊 Counting your debts and credits…';
+  if (all.includes('Fetching'))                        return '📡 Pulling your financial life from Monarch…';
+  return '🦋 Starting up…';
 }
 
 function loadPayOverrides() {
@@ -1592,6 +1612,55 @@ function clearPayOverride(nameKey) {
 
 loadPayOverrides();
 
+function loadDayOverrides() {
+  fetch('/api/payment-day-overrides')
+    .then(function(r) { return r.json(); })
+    .then(renderDayOverrides)
+    .catch(function() {
+      var list = document.getElementById('dayOverrideList');
+      if (list) list.innerHTML = '<p style="font-size:0.82rem;color:#ff3b30;">Could not load day overrides.</p>';
+    });
+}
+
+function renderDayOverrides(data) {
+  var list = document.getElementById('dayOverrideList');
+  if (!list) return;
+  if (!data.length) {
+    list.innerHTML = '<p style="font-size:0.82rem;color:#aeaeb2;font-style:italic;margin:6px 0 0;">'
+      + 'No billing day overrides set.</p>';
+    return;
+  }
+  var html = '<table class="pay-override-table"><thead><tr>'
+    + '<th>Name</th><th>Day</th><th>Note</th><th>Set</th><th></th>'
+    + '</tr></thead><tbody>';
+  data.forEach(function(o) {
+    var k = (o.name || '').toLowerCase();
+    html += '<tr>'
+      + '<td>' + _escHtml(o.name || '') + '</td>'
+      + '<td style="font-weight:500;">' + _escHtml(String(o.day)) + '</td>'
+      + '<td style="color:#6e6e73;">' + _escHtml(o.note || '') + '</td>'
+      + '<td style="color:#aeaeb2;white-space:nowrap;">' + _escHtml(o.updated || '') + '</td>'
+      + '<td><button class="pov-clear-btn" title="Remove day override" '
+      + 'data-key="' + _escHtml(k) + '" '
+      + 'onclick="clearDayOverride(this.dataset.key)">&#215;</button></td>'
+      + '</tr>';
+  });
+  html += '</tbody></table>';
+  list.innerHTML = html;
+}
+
+function clearDayOverride(nameKey) {
+  if (!confirm('Remove billing day override for "' + nameKey + '"?\nThe forecast will revert to Monarch\'s date.')) return;
+  fetch('/api/payment-day-overrides', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({name: nameKey, clear: true})
+  })
+  .then(function(r) { return r.json(); })
+  .then(loadDayOverrides)
+  .catch(function() { showError('Could not remove day override. Check the server log.'); });
+}
+
 function loadPaySkips() {
   fetch('/api/payment-skips')
     .then(function(r) { return r.json(); })
@@ -1691,6 +1760,7 @@ function clearPaySkip(name, month) {
 }
 
 loadPaySkips();
+loadDayOverrides();
 </script>
 
 <!-- Pill popover — inline transaction editing -->
@@ -1749,6 +1819,8 @@ function openPillPopover(pill) {
         + '\u270e Override Amount (all months)</button>';
       body += '<button class="pill-pop-action danger" onclick="pillSuppress(' + jd + ')">'
         + '\u229d Suppress Entirely</button>';
+      body += '<button class="pill-pop-action" onclick="pillChangeDay(' + jd + ')">'
+        + '\uD83D\uDCC5 Change billing day</button>';
     }
   } else if (source === 'scenario') {
     body += '<button class="pill-pop-action danger" onclick="pillDeleteScenario(' + js + ',' + jd + ')">'
@@ -1890,6 +1962,39 @@ function pillSuppress(desc) {
   .then(function(r) { return r.json(); })
   .then(function() { loadPayOverrides(); showStaleBanner('"' + desc + '" suppressed from forecast'); })
   .catch(function() { showError('Could not suppress. Check the server log.'); });
+}
+
+function pillChangeDay(desc) {
+  var inner = document.getElementById('pillPopoverInner');
+  var row = document.createElement('div');
+  row.className = 'pill-pop-amount-row';
+  row.innerHTML = '<span style="color:var(--text-secondary);font-size:0.84rem;flex-shrink:0;">Day of month:</span>'
+    + '<input id="pillDayInput" type="number" min="1" max="28" placeholder="e.g. 16" style="width:70px;" />'
+    + '<input id="pillDayNote" type="text" placeholder="Note (optional)" />'
+    + '<button onclick="pillChangeDaySave(' + _escHtml(JSON.stringify(desc)) + ')">Save</button>';
+  var firstBtn = inner.querySelector('.pill-pop-action');
+  if (firstBtn) inner.insertBefore(row, firstBtn);
+  else inner.appendChild(row);
+  document.getElementById('pillDayInput').focus();
+}
+
+function pillChangeDaySave(desc) {
+  var day = parseInt(document.getElementById('pillDayInput').value, 10);
+  if (isNaN(day) || day < 1 || day > 28) { showError('Enter a day 1\u201328.'); return; }
+  var noteEl = document.getElementById('pillDayNote');
+  var note = noteEl ? noteEl.value : '';
+  _closePillPopover();
+  fetch('/api/payment-day-overrides', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({name: desc, day: day, note: note})
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    if (!d.ok) { showError(d.error || 'Could not save.'); return; }
+    showInfo('Billing day updated \u2014 recalculating\u2026');
+    recalcForecast();
+  })
+  .catch(function() { showError('Could not save. Check the server log.'); });
 }
 
 function pillDeleteScenario(sid, desc) {
@@ -2052,9 +2157,9 @@ function dashRunAiAnalysis() {
   var aiPanel = document.getElementById('aiPanel');
   if (aiPanel) aiPanel.classList.add('running');
 
-  // Show "Starting…" in log div immediately so there's no blank gap before first poll
+  // Show stage label immediately so there's no blank gap before first poll
   var runLog = document.getElementById('dashAiRunLog');
-  if (runLog) { runLog.textContent = 'Starting\u2026'; runLog.style.display = ''; }
+  if (runLog) { runLog.textContent = _aiStageLabel(null); runLog.style.display = ''; }
 
   // Disable the split button's AI option while running
   var refreshForecastBtn = document.getElementById('refreshForecastBtn');
@@ -2077,12 +2182,12 @@ function dashRunAiAnalysis() {
         fetch('/api/ai-analysis-status')
           .then(function(r) { return r.json(); })
           .then(function(s) {
-            // Show last log line as a live progress indicator
+            // Show stage-aware label as a live progress indicator
             var runLog = document.getElementById('dashAiRunLog');
             if (s.log && s.log.length) {
-              if (runLog) { runLog.textContent = s.log[s.log.length - 1]; runLog.style.display = ''; }
+              if (runLog) { runLog.textContent = _aiStageLabel(s.log); runLog.style.display = ''; }
             } else if (s.running && runLog) {
-              runLog.textContent = 'Starting\u2026'; runLog.style.display = '';
+              runLog.textContent = _aiStageLabel(null); runLog.style.display = '';
             }
             if (!s.running) {
               clearInterval(_dashAiPollInterval);

@@ -27,6 +27,7 @@ _PAYMENT_MONTHLY_AMOUNTS_FILE = _BASE / "payment_monthly_amounts.json"
 _SCENARIOS_FILE               = _BASE / "scenarios.json"
 _ACCOUNTS_CACHE_FILE          = _BASE / "monarch_accounts_cache.json"
 _DISMISSED_SUGGESTIONS_FILE   = _BASE / "dismissed_suggestions.json"
+_PAYMENT_DAY_OVERRIDES_FILE   = _BASE / "payment_day_overrides.json"
 
 # ── Regex patterns for user_context.md parsing ────────────────────────────────
 
@@ -226,3 +227,25 @@ def _load_dismissed_suggestions() -> list:
 def _save_dismissed_suggestions(dismissed: list) -> None:
     """Persist dismissed suggestion fingerprints atomically."""
     _atomic_write(_DISMISSED_SUGGESTIONS_FILE, json.dumps(dismissed, indent=2))
+
+
+def _load_payment_day_overrides() -> dict:
+    """Load {name_lower: {name, day, note}} from payment_day_overrides.json."""
+    if not _PAYMENT_DAY_OVERRIDES_FILE.exists():
+        return {}
+    try:
+        data = json.loads(_PAYMENT_DAY_OVERRIDES_FILE.read_text())
+        if not isinstance(data, dict):
+            return {}
+        good = {}
+        for k, v in data.items():
+            if not isinstance(v, dict):
+                continue
+            if not isinstance(v.get("name"), str):
+                continue
+            if not isinstance(v.get("day"), int) or not (1 <= v["day"] <= 28):
+                continue
+            good[k] = v
+        return good
+    except Exception:
+        return {}

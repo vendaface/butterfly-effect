@@ -40,6 +40,7 @@ from storage import (
     _ACCOUNTS_CACHE_FILE,
     _DISMISSED_SUGGESTIONS_FILE,
     _INSIGHTS_FILE,
+    _PAYMENT_DAY_OVERRIDES_FILE,
     _PAYMENT_MONTHLY_AMOUNTS_FILE,
     _PAYMENT_OVERRIDES_FILE,
     _PAYMENT_SKIPS_FILE,
@@ -49,6 +50,7 @@ from storage import (
     _atomic_write,
     _load_dismissed_suggestions,
     _load_insights,
+    _load_payment_day_overrides,
     _load_payment_monthly_amounts,
     _load_payment_overrides,
     _load_payment_skips,
@@ -382,6 +384,50 @@ def api_set_payment_override():
 
     _atomic_write(_PAYMENT_OVERRIDES_FILE, json.dumps(overrides, indent=2))
     _clear_forecast_cache()   # recompute forecast with new override (Monarch data reused)
+    return jsonify({"ok": True})
+
+
+# ── API: billing-day overrides ────────────────────────────────────────────────
+
+@app.route("/api/payment-day-overrides", methods=["GET"])
+def api_payment_day_overrides_get():
+    """Return the list of billing-day override records."""
+    return jsonify(list(_load_payment_day_overrides().values()))
+
+
+@app.route("/api/payment-day-overrides", methods=["POST"])
+def api_payment_day_overrides_post():
+    """
+    Save or clear a billing-day override.
+    Body: {"name": "AMEX Gold", "day": 16, "note": "Closes on 16th"}
+    To clear: {"name": "AMEX Gold", "clear": true}
+    Returns: {"ok": true}
+    """
+    body  = request.get_json(force=True) or {}
+    name  = (body.get("name") or "").strip()
+    note  = (body.get("note") or "").strip()
+    clear = body.get("clear", False)
+    if not name:
+        return jsonify({"error": "name required"}), 400
+
+    overrides = _load_payment_day_overrides()
+    key = name.lower()
+
+    if clear:
+        overrides.pop(key, None)
+    else:
+        day = body.get("day")
+        if not isinstance(day, int) or not (1 <= day <= 28):
+            return jsonify({"error": "day must be an integer 1–28"}), 400
+        overrides[key] = {
+            "name":    name,
+            "day":     day,
+            "note":    note,
+            "updated": datetime.now().strftime("%Y-%m-%d"),
+        }
+
+    _atomic_write(_PAYMENT_DAY_OVERRIDES_FILE, json.dumps(overrides, indent=2))
+    _clear_forecast_cache()
     return jsonify({"ok": True})
 
 
