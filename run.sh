@@ -5,6 +5,21 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
+# ── OS detection ──────────────────────────────────────────────────────────────
+OS="linux"
+[[ "$OSTYPE" == "darwin"* ]] && OS="darwin"
+
+# ── Helper: open startup.html with optional query string ──────────────────────
+# macOS 'open' treats bare paths with '?' as filenames, so use file:// URL with
+# spaces percent-encoded (the only special char likely in a home directory path).
+_STARTUP_URL="file://${SCRIPT_DIR// /%20}/startup.html"
+_open_startup() {
+  open "${_STARTUP_URL}$1" 2>/dev/null || xdg-open "${_STARTUP_URL}$1" 2>/dev/null || true
+}
+
+# ── Open startup page immediately (before any slow checks) ────────────────────
+_open_startup "?os=$OS"
+
 # ── Python detection ──────────────────────────────────────────────────────────
 PYTHON=""
 for candidate in python3 python3.13 python3.12 python3.11; do
@@ -16,8 +31,8 @@ for candidate in python3 python3.13 python3.12 python3.11; do
   fi
 done
 if [ -z "$PYTHON" ]; then
-  echo "Error: Python 3.11 or higher is required."
-  echo "Install it from https://www.python.org/downloads/ or: brew install python@3.12"
+  _open_startup "?e=nopython&os=$OS"
+  echo "Error: Python 3.11+ required. See the browser window for install instructions."
   exit 1
 fi
 
@@ -30,10 +45,6 @@ if [ ! -f .env ]; then
   echo "First run: creating .env (credentials file)..."
   touch .env
 fi
-
-# ── Startup page ──────────────────────────────────────────────────────────────
-# Open immediately — JS polls /_ping and auto-redirects when Flask is ready
-open "$SCRIPT_DIR/startup.html" 2>/dev/null || xdg-open "$SCRIPT_DIR/startup.html" 2>/dev/null || true
 
 # ── Virtual environment ───────────────────────────────────────────────────────
 # Stored outside iCloud Drive to prevent macOS from evicting venv files.
@@ -60,7 +71,8 @@ while kill -0 "$PIP_PID" 2>/dev/null; do printf "."; sleep 1; done
 wait "$PIP_PID"; PIP_EXIT=$?
 if [ $PIP_EXIT -ne 0 ]; then
   echo " failed."
-  echo "Error: could not install dependencies. Check that your Python environment is healthy."
+  _open_startup "?e=pipfail&os=$OS"
+  echo "Error: dependency install failed. See the browser window for details."
   exit 1
 fi
 echo " done."

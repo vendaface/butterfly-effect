@@ -127,6 +127,51 @@
       0%, 100% { opacity: 0; transform: scale(0.5); }
       50%       { opacity: 0.6; transform: scale(1); }
     }
+
+    /* ── Error card ── */
+    .error-card {
+      display: none;
+      text-align: left;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-left: 3px solid #ff453a;
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-top: 8px;
+    }
+    .error-card.visible { display: block; }
+    .error-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #ff453a;
+      margin-bottom: 12px;
+    }
+    .error-body { font-size: 0.85rem; color: #aeaeb2; line-height: 1.6; }
+    .error-body p { margin-bottom: 10px; }
+    .cmd {
+      display: block;
+      font-family: "SF Mono", "Menlo", "Courier New", monospace;
+      font-size: 0.82rem;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 8px 12px;
+      color: #30d158;
+      margin: 6px 0 10px;
+      white-space: pre;
+      overflow-x: auto;
+    }
+    .error-note {
+      font-size: 0.75rem;
+      color: #48484a;
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px solid #21262d;
+    }
+    body.has-error .progress-fill { animation: none; background: #30363d; }
+    body.has-error .butterfly-wrap svg { filter: none; opacity: 0.35; }
+    body.has-error .stage { color: #636366; }
+    body.has-error .quip  { display: none; }
   </style>
 </head>
 <body>
@@ -160,11 +205,67 @@
     </div>
 
     <div class="quip" id="quip">Reticulating splines&hellip;</div>
+
+    <div class="error-card" id="errorCard">
+      <div class="error-title" id="errorTitle"></div>
+      <div class="error-body" id="errorBody"></div>
+      <div class="error-note">After installing, close this window and run the app again.</div>
+    </div>
   </div>
 
   <script>
   (function () {
     'use strict';
+
+    // ── Error content by code ────────────────────────────────────────────────
+    var ERROR_CONTENT = {
+      nopython: {
+        title: '\u26a0\ufe0f Python 3.11 or higher is required',
+        body: function (os) {
+          if (os === 'darwin') return ''
+            + '<p>Butterfly Effect needs Python 3.11+. The quickest way to install it:</p>'
+            + '<p><strong>Option 1 \u2014 Homebrew</strong> <span style="color:#636366">(recommended)</span></p>'
+            + '<code class="cmd">/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"</code>'
+            + '<p style="margin-top:-4px">Then:</p>'
+            + '<code class="cmd">brew install python@3.12</code>'
+            + '<p><strong>Option 2 \u2014 Direct download</strong></p>'
+            + '<p>Visit <a href="https://python.org/downloads" style="color:#0a84ff">python.org/downloads</a> and install Python 3.12 or newer.</p>';
+          return ''
+            + '<p>Butterfly Effect needs Python 3.11+.</p>'
+            + '<p><strong>Ubuntu / Debian:</strong></p>'
+            + '<code class="cmd">sudo apt update &amp;&amp; sudo apt install python3.12</code>'
+            + '<p><strong>Fedora / RHEL:</strong></p>'
+            + '<code class="cmd">sudo dnf install python3.12</code>'
+            + '<p><strong>Arch:</strong></p>'
+            + '<code class="cmd">sudo pacman -S python</code>';
+        }
+      },
+      pipfail: {
+        title: '\u26a0\ufe0f Dependency installation failed',
+        body: function (os) {
+          return ''
+            + '<p>pip could not install the required packages. This usually means a corrupted Python environment.</p>'
+            + '<p><strong>Try resetting the virtual environment:</strong></p>'
+            + '<code class="cmd">rm -rf ~/.cache/balance-forecast-venv\n./run.sh</code>'
+            + '<p>If the problem persists, check your internet connection and try again.</p>';
+        }
+      }
+    };
+
+    // ── Check URL params for error mode ─────────────────────────────────────
+    var params  = new URLSearchParams(location.search);
+    var errCode = params.get('e');
+    var os      = params.get('os') || 'darwin';
+
+    if (errCode && ERROR_CONTENT[errCode]) {
+      var def = ERROR_CONTENT[errCode];
+      document.getElementById('errorTitle').innerHTML = def.title;
+      document.getElementById('errorBody').innerHTML  = def.body(os);
+      document.getElementById('errorCard').classList.add('visible');
+      document.body.classList.add('has-error');
+      document.title = 'Butterfly Effect \u2014 Setup needed';
+      // No polling or timers in error mode
+    } else {
 
     // ── Stage messages keyed by elapsed seconds ─────────────────────────────
     var stages = [
@@ -267,6 +368,8 @@
 
     // Wait 1 second before first poll — server is definitely not up yet
     setTimeout(checkReady, 1000);
+
+    } // end else (no error)
   })();
   </script>
 </body>
