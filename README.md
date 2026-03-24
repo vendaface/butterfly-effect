@@ -1,4 +1,4 @@
-# Balance Forecast BETA v0.8
+# Butterfly Effect v0.9.2
 
 > **Unofficial tool — not affiliated with or endorsed by Monarch Money, Inc. Use at your own risk.**
 
@@ -8,67 +8,97 @@ A self-hosted personal finance dashboard that pulls your **Monarch Money** accou
 
 ## What this tool does
 
-Balance Forecast reads your transaction history and recurring payment schedule from Monarch Money and projects your checking account balance forward in time — by default 45 days, configurable to any horizon you like. It highlights upcoming low-balance windows, lets you model one-off transfers or expenses, and can optionally generate AI-powered narrative insights about spending patterns and upcoming bills.
+Butterfly Effect reads your transaction history and recurring payment schedule from Monarch Money and projects your checking account balance forward in time — by default 45 days, configurable to any horizon you like. It highlights upcoming low-balance windows, lets you model one-off transfers or expenses, and can optionally generate AI-powered narrative insights about spending patterns and upcoming bills.
 
 Key capabilities:
 
 - **Forecast chart** — rolling balance projection based on your Monarch recurring schedule
 - **Variable Payments** — override the learned amount for credit cards or irregular bills
+- **Billing Day Overrides** — correct the day-of-month a recurring payment is expected
 - **Scenario Modeling** — add hypothetical transfers or expenses to see their impact
 - **AI Insights** (optional) — seasonal patterns, predicted expenses, transfer recommendations
-- **Calendar Integration** (optional) — overlay external Calendar events on the forecast
+- **Calendar Integration** (optional) — overlay external Calendar events on the forecast chart
 - **Dark mode**
 
 ---
 
 ## Screenshots
 
-### Balance forecast graph
+### Balance forecast — two-column layout
 
-The main dashboard projects your checking account balance forward 45 days (configurable). Stat cards show current balance, the projected low for the period, how many days fall below your configured buffer, and the buffer threshold itself. The chart draws a clear visual boundary at your buffer line — dips below it appear instantly.
+The main dashboard uses a fixed two-column layout. The left pane always shows your balance graph, stat cards, and transfer recommendations. The right pane scrolls independently through your upcoming transaction schedule.
 
-![Balance Forecast dashboard in light mode, showing the projected balance chart with a dip below the $2,000 buffer threshold](docs/screenshots/dashboard-light.png)
+![Balance Forecast dashboard in light mode, showing two-column layout with forecast chart on the left and scrollable transaction schedule on the right](docs/screenshots/dashboard-light.png)
+
+---
+
+### Resizable columns
+
+Drag the handle between the two panes to resize them. The left column stays within a minimum and maximum width to keep both panes usable.
 
 ---
 
 ### Inspecting the balance forecast graph
 
 Hover over any date on the balance graph to see that day's transactions.
+
 ![Graph node popup showing transactions for the given date](docs/screenshots/dashboard-tx-popup.png)
 
 ---
 
-### Transaction calendar
+### Transaction schedule
 
-A list of dates up to your forecast horizon with clickable transaction pills showing merchants & amounts.
+The right pane shows a scrollable agenda of upcoming dates with clickable transactions showing merchants and amounts. The last-refreshed timestamp appears in this pane's header.
 
-![Transactions appear on an agenda-like calendar](docs/screenshots/dashboard-tx-calendar.png)
-
----
-
-### Editing a transaction amount inline
-
-Click any transaction on the calendar to pop up an editing interface. Change single amounts, recurring amounts, suppress the series, or skip the transaction altogether. The forecast updates instantly when you save the changes.
-![Editing a transaction inline in the transaction calendar](docs/screenshots/dashboard-tx-edit.png)
+![Transaction schedule pane with date rows and clickable payment pills](docs/screenshots/dashboard-tx-calendar.png)
 
 ---
 
-### Transfer Advice & AI Insights (optional)
+### Editing a transaction inline
 
-Transfer recommendations are part of the forecast engine, recommending amounts and dates to transfer funds in to ensure a positive balance.
-The optional AI Insights panel displays actionable observations based on your historic transactions (going back a customizable number of months).
-It will point out where you can optimize spending, when savings is possible, and give advice. If it's confidently wrong like AI tends to be,
-the Corrections panel at the bottom of the card lets you hand-author facts, known quirks, and overrides that get injected into every AI analysis to fix its accuracy.
+Click any transaction pill to open the editing panel. Change single amounts, change recurring amounts, suppress the series, or skip a single occurrence. The forecast updates instantly when you save.
 
-![AI risk flags panel showing two warnings, seasonal notes section, and the Corrections panel with three entries](docs/screenshots/dashboard-txrecs-ai-insights.png)
+![Inline editing panel showing amount, skip, and suppress options](docs/screenshots/dashboard-tx-edit.png)
+
+---
+
+### AI Insights drawer
+
+Click **✦ AI Insights** in the header to slide the AI panel in from the right. It overlays the transaction schedule without shifting the graph. Transfer recommendations and seasonal spending observations appear here. The Corrections panel below lets you feed the AI specific facts about your finances to fix its accuracy.
+
+![AI Insights drawer open, showing risk flags, seasonal notes, and the Corrections panel](docs/screenshots/dashboard-txrecs-ai-insights.png)
+
+---
+
+### Scenario modeling
+
+Add one-off transfers or expenses to model their impact on the forecast without modifying your real data.
+
+![Scenario modeling panel with example transfer entry](docs/screenshots/dashboard-scenario-modeling.png)
+
+---
+
+### Dark mode
+
+Switch between light and dark mode from Settings or the moon icon in the header.
+
+![Balance Forecast dashboard in dark mode](docs/screenshots/dashboard-dark.png)
+
+---
+
+### Settings — first run
+
+On first launch the app opens directly to the Settings page, with the Monarch Connection section highlighted.
+
+![Settings page on first run showing Monarch Connection section highlighted with a blue border](docs/screenshots/settings-firstrun-setup.png)
 
 ---
 
 ### Settings — Monarch Connection
 
-Connect to Monarch via a temporary Chrome window, no credentials are saved by the app.
+Connect to Monarch via a temporary Chrome window. Your credentials go directly to Monarch — they are never seen or stored by this app.
 
-![Kick off a Monarch session to save the connection](docs/screenshots/settings-monarch-connection.png)
+![Settings Monarch Connection section showing Connect button and account dropdown](docs/screenshots/settings-monarch-connection.png)
 
 ![Browser window opens with Monarch login](docs/screenshots/settings-monarch-fetching.png)
 
@@ -76,18 +106,9 @@ Connect to Monarch via a temporary Chrome window, no credentials are saved by th
 
 ### Settings — AI Insights
 
-Configure your AI provider, model, and API key here. The **Last generated** line shows the timestamp, token counts, and cost of the most recent analysis. You can kick off a new analysis directly from this page and watch the live progress log without leaving Settings.
+Configure your AI provider, model, and API key here. The **Last generated** line shows the timestamp, token counts, and cost of the most recent analysis. You can kick off a new analysis directly from this page and watch the live progress log.
 
-![AI Insights settings panel showing provider selection, model, API key configuration, and Run AI Analysis button](docs/screenshots/settings-ai.png)
-
-
----
-
-### Dark mode — Dashboard
-
-Switch between light and dark modes easily.
-
-![Balance Forecast dashboard in dark mode, showing the same projected balance chart with a dark color scheme](docs/screenshots/dashboard-dark.png)
+![AI Insights settings panel showing provider selection, model, API key field, and Run AI Analysis button](docs/screenshots/settings-ai.png)
 
 ---
 
@@ -128,54 +149,59 @@ Click the **Code** button on this page and choose **Download ZIP**. Unzip it som
 ### Step 2 — Launch it
 
 **On Mac:**
-Double-click **`Start Balance Forecast.command`** in the folder. On first run it will take a couple of minutes to set up and open the Settings page in a browser - be patient and watch your terminal window for any dependency errors!
+Double-click **`Start Balance Forecast.command`** in the folder. A startup page opens in your browser while the app initializes. On first run it will take a couple of minutes to set up — watch the terminal window for any dependency errors.
 
 > The first time you open it, macOS may warn you it's from an unidentified developer. Right-click the file → **Open** → **Open** to proceed. You only need to do this once.
 
 **On Linux:**
 Right-click **`run.sh`** in your file manager → **Run as Program** (the exact wording depends on your desktop). Or open a Terminal, navigate to the folder, and enter `./run.sh`.
 
-The launcher will automatically:
-- Set up a Python environment
-- Install all required packages
-- Open your browser to the Settings page
+The launcher automatically:
+- Detects Python and shows a friendly error page if it's missing or too old
+- Sets up a Python virtual environment
+- Installs all required packages
+- Opens a startup page in your browser, then redirects to the app once it's ready
 
 ### Step 3 — Connect to Monarch
 
-On first launch your browser will open directly to the **Settings** page. The **Monarch Connection** section (highlighted with a blue border) is the only required step:
+On first launch your browser opens directly to the **Settings** page. The **Monarch Connection** section (highlighted with a blue border) is the only required step:
 
 1. Click **Connect to Monarch** — a Chrome browser window will open automatically. Log in to Monarch when prompted; the window closes on its own after a successful login (~30–60 seconds).
 2. Wait for your eligible Monarch accounts to populate, then select your **primary bill pay account** from the dropdown that appears. Click **Save Monarch Settings** to complete the setup.
 
-Once these two steps are complete, the **Go to Dashboard →** button at the top of the page will turn green. Click it to pull transactions and open your forecast - again, this may take 30 seconds or so. Patience, grasshopper.
+Once these two steps are complete, the **Go to Dashboard →** button at the top of the page will turn green. Click it to pull transactions and open your forecast — this may take 30 seconds or so on first run.
 
-> Down further on the Settings page are **AI Insights** and **Forecast Settings**. These are both optional on first run and can always be customized later. The forecast defaults work just fine to start.
+> Down further on the Settings page are **AI Insights** and **Forecast Settings**. These are both optional on first run and can always be customized later.
 
 ### Step 4 — View & customize your first forecast
 
-The first time you open the dashboard after setup the app fetches your transaction history from Monarch. Your forecast chart will appear at the top of the dashboard when it's done. After the first run, your data stays cached so the dashboard loads instantly on future visits.
+The first time you open the dashboard the app fetches your transaction history from Monarch. Your forecast chart will appear at the top of the left pane when it's done. After the first run, your data stays cached so the dashboard loads instantly on future visits.
 
 ---
 
 ## Day-to-day use
 
-**Starting the app:** Double-click **`Start Balance Forecast.command`** (Mac) or run `./run.sh` (Linux). Your browser will open automatically. I recommend bookmarking `http://localhost:5002` as well.
+**Starting the app:** Double-click **`Start Balance Forecast.command`** (Mac) or run `./run.sh` (Linux). A startup page opens in your browser and redirects automatically once the server is ready. You can also bookmark `http://localhost:5002`.
 
 **Refresh Forecast** — click the button in the upper right whenever you want updated transaction data from Monarch. Takes 1–2 minutes.
 
 **Run AI Analysis** — generates fresh AI insights. Run this once a day or whenever you want an updated analysis. Requires an AI API key in Settings → AI Insights.
 
+**AI Insights drawer** — click **✦ AI Insights** in the header to slide the panel in over the transaction schedule. Click it again (or the × inside) to close it.
+
+**Resize columns** — drag the vertical handle between the two panes to adjust how much width each side gets.
+
 **Settings** — everything is configurable from the Settings page. Key options:
 
 | Setting | Description |
 |---|---|
-| Primary Account | Select the account used for bill payments - refresh the list if you don't see it |
-| AI Insights | Enable AI Insights (off by default); set your preferred provider (Anthropic, OpenAI, or Google), choose your preferred model and add your API key; set the default number of transaction months to retrieve for analysis;  customize how long before the analysis is labeled as stale. You can also kick off an AI Analysis right from Settings and see it run in a status window |
+| Primary Account | Select the account used for bill payments — refresh the list if you don't see it |
+| AI Insights | Enable AI Insights (off by default); set your preferred provider (Anthropic, OpenAI, or Google), choose your preferred model and add your API key; set the default number of transaction months to retrieve for analysis; customize how long before the analysis is labeled as stale. You can also kick off an AI Analysis right from Settings and see it run in a status window |
 | Forecast Horizon | How many days to project forward (default: 45) |
 | Buffer Threshold | Get a warning when your balance drops below this dollar amount |
-| User Context & AI Corrections | Hand-edit your AI corrections in free text (also stored in user_context.md) |
-| Calendar Integration | Overlay custom calendar transaction events onto the forecast chart with Google Calendar, iCloud, or a custom ICS feed. |
-| App Settings | Change the default port, turn on debug mode, restart the server, or reset to factory defaults. |
+| User Context & AI Corrections | Hand-edit your AI corrections in free text (also stored in `user_context.md`) |
+| Calendar Integration | Overlay custom calendar transaction events onto the forecast chart with Google Calendar, iCloud, or a custom ICS feed |
+| App Settings | Change the default port, turn on debug mode, or reset to factory defaults |
 
 ---
 
@@ -195,7 +221,7 @@ All three providers work. Anthropic's Claude is recommended because the prompt i
 
 1. Go to [console.anthropic.com](https://console.anthropic.com/) and sign up or sign in.
 2. In the left sidebar click **API Keys**.
-3. Click **Create Key**, give it a name (e.g. "Balance Forecast"), and click **Create Key**.
+3. Click **Create Key**, give it a name (e.g. "Butterfly Effect"), and click **Create Key**.
 4. Copy the key — it starts with `sk-ant-api03-…`. **You won't be able to see it again after closing this dialog**, so copy it now.
 5. In the app go to **Settings → AI Insights**, set the provider to **Anthropic**, and paste the key into the API Key field. Click **Save AI Settings**.
 
@@ -228,11 +254,16 @@ Google AI Studio keys include a generous free tier. Usage beyond the free tier i
 
 ## Features
 
+- **Two-column fixed-viewport layout** — graph, stat cards, and transfer recommendations always visible on the left; transaction schedule scrolls independently on the right
+- **Resizable columns** — drag the handle between panes to fit your screen
+- **AI Insights drawer** — slides in over the schedule on demand; doesn't disturb the layout when closed
 - **Forecast balance chart** with recurring payments projected forward, configurable to any number of days
 - **AI insights** (optional) — seasonal spending patterns, predicted upcoming expenses, transfer recommendations to maintain a balance above your configured buffer amount
 - **Variable Payments** — override Monarch's learned amount for variable monthly payments like credit cards; enter $0 to suppress a payment from the forecast entirely for a month
+- **Billing Day Overrides** — correct the day-of-month for any recurring payment whose billing date Monarch has learned incorrectly
 - **Scenario Modeling** — temporarily model one-time transfers or expenses to see how they affect your balance forecast
 - **Corrections & Context** — feed the AI specific facts about your finances to improve its accuracy
+- **Startup page** — animated loading screen with helpful error messages if Python is missing or dependencies fail to install
 - **Dark mode** — toggle in Settings or with the moon icon in the header
 
 ---
@@ -240,6 +271,8 @@ Google AI Studio keys include a generous free tier. Usage beyond the free tier i
 ## Troubleshooting
 
 **"Setup needed" error on the dashboard** — click **→ Open Settings** in the error box and complete the Monarch Connection section (connect to Monarch and select your primary account).
+
+**Startup page shows a Python error** — follow the on-screen instructions to install Python 3.11 or later. On Mac, the page includes a Homebrew one-liner you can copy directly into Terminal.
 
 **Forecast is slow** — this is normal on first run. The app opens a browser, logs into Monarch, and fetches months of transaction history. Subsequent loads use a cached session and are much faster.
 
@@ -263,10 +296,9 @@ Here is exactly where data flows and where it is stored:
 
 ### Authentication & Monarch connection
 
-1. You enter your Monarch email and password into a chrome window just to capture the session data — they are never transmitted to any server other than Monarch's own login endpoint.
-2. When you click **Connect to Monarch**, a Chromium browser window opens on your machine. You log in directly to `app.monarchmoney.com` — your credentials go from your keyboard to Monarch's servers, nowhere else.
-3. After a successful login, Playwright saves your session cookies to `browser_state.json` in the app folder. Subsequent data fetches use this saved session (headless, no visible window) to avoid repeated logins.
-4. All future data fetches go directly from your computer to `api.monarch.com` — the same GraphQL endpoint your browser uses when you visit Monarch normally.
+1. When you click **Connect to Monarch**, a Chromium browser window opens on your machine. You log in directly to `app.monarchmoney.com` — your credentials go from your keyboard to Monarch's servers, nowhere else.
+2. After a successful login, Playwright saves your session cookies to `browser_state.json` in the app folder. Subsequent data fetches use this saved session (headless, no visible window) to avoid repeated logins.
+3. All future data fetches go directly from your computer to `api.monarch.com` — the same GraphQL endpoint your browser uses when you visit Monarch normally.
 
 ### Data storage (all files are local, in the app folder)
 
@@ -277,9 +309,16 @@ Here is exactly where data flows and where it is stored:
 | `config.yaml` | App preferences (account ID, forecast horizon, etc.) | **Never** |
 | `insights.json` | AI analysis output | Only if you configure an AI provider |
 | `payment_overrides.json` | Your variable payment amounts | **Never** |
+| `payment_day_overrides.json` | Your billing day corrections | **Never** |
 | `scenarios.json` | Scenario modeling events | **Never** |
 | `monarch_accounts_cache.json` | Account names and IDs from Monarch | **Never** |
 | `user_context.md` | Corrections you feed to the AI | Only if you configure an AI provider |
+
+All sensitive files are written with owner-only permissions (`chmod 600`) so other users on the same machine cannot read them.
+
+### Security
+
+The local web server uses CSRF tokens to protect all state-changing API calls. Every form submission and data-mutation request from the browser is validated against a per-session token that outside pages cannot read. Response headers (`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`) are set on all API routes.
 
 The app runs a local web server at `http://localhost:5002` by default. This server is only accessible from your own computer — it does not listen on a network interface accessible to other devices.
 
@@ -322,6 +361,7 @@ Your AI API key is stored only in `.env` on your device. It is sent only to your
 | `browser_state.json` | Saved Monarch login session |
 | `insights.json` | Latest AI analysis output |
 | `payment_overrides.json` | Variable payment amounts you've set |
+| `payment_day_overrides.json` | Billing day corrections |
 | `scenarios.json` | Scenario modeling events |
 | `monarch_accounts_cache.json` | Cached account list from Monarch |
 | `user_context.md` | Corrections and facts injected into AI prompts |
