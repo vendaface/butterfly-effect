@@ -240,19 +240,32 @@
       }
     };
 
-    // ── Check URL params for error mode ─────────────────────────────────────
-    var params  = new URLSearchParams(location.hash.slice(1));
-    var errCode = params.get('e');
-    var os      = params.get('os') || 'darwin';
-
-    if (errCode && ERROR_CONTENT[errCode]) {
+    // ── Show error card (called on load or hashchange) ───────────────────────
+    var _tickInterval = null;
+    function showError(errCode, os) {
       var def = ERROR_CONTENT[errCode];
       document.getElementById('errorTitle').innerHTML = def.title;
       document.getElementById('errorBody').innerHTML  = def.body(os);
       document.getElementById('errorCard').classList.add('visible');
       document.body.classList.add('has-error');
       document.title = 'Butterfly Effect \u2014 Setup needed';
-      // No polling or timers in error mode
+      if (_tickInterval) { clearInterval(_tickInterval); _tickInterval = null; }
+    }
+
+    function checkHash() {
+      var params  = new URLSearchParams(location.hash.slice(1));
+      var errCode = params.get('e');
+      var os      = params.get('os') || 'darwin';
+      if (errCode && ERROR_CONTENT[errCode]) { showError(errCode, os); return true; }
+      return false;
+    }
+
+    // Re-check on hash change — macOS 'open' focuses the existing tab and
+    // updates the hash rather than opening a new tab, so JS doesn't re-run.
+    window.addEventListener('hashchange', checkHash);
+
+    if (checkHash()) {
+      // Error detected on load — no timers needed
     } else {
 
     // ── Stage messages keyed by elapsed seconds ─────────────────────────────
@@ -345,7 +358,7 @@
     stageEl.textContent = getStageLabel();
     makeSparks();
 
-    setInterval(tick, 3200);
+    _tickInterval = setInterval(tick, 3200);
 
     // Wait 1 second before first poll — server is definitely not up yet
     setTimeout(checkReady, 1000);
