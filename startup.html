@@ -253,7 +253,12 @@
     }
 
     function checkHash() {
-      var params  = new URLSearchParams(location.hash.slice(1));
+      // Prefer the variable injected by run.sh into this file's <head>.
+      // macOS 'open' silently drops URL fragments for file:// URLs, so
+      // location.hash is empty and cannot be relied upon.
+      var raw = (typeof window.__BF_PARAMS !== 'undefined' ? window.__BF_PARAMS : '')
+                || location.hash.slice(1);
+      var params  = new URLSearchParams(raw);
       var errCode = params.get('e');
       var os      = params.get('os') || 'darwin';
       if (errCode && ERROR_CONTENT[errCode]) { showError(errCode, os); return true; }

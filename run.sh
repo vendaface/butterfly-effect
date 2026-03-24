@@ -9,18 +9,34 @@ cd "$SCRIPT_DIR"
 OS="linux"
 [[ "$OSTYPE" == "darwin"* ]] && OS="darwin"
 
-# ── Helper: open startup.html with optional query string ──────────────────────
-# macOS 'open' treats bare paths with '?' as filenames, so use file:// URL with
-# spaces percent-encoded (the only special char likely in a home directory path).
-_STARTUP_URL="file://${SCRIPT_DIR// /%20}/startup.html"
+# ── Clean up leftover startup temp files from previous runs ──────────────────
+rm -f /tmp/butterfly-startup-*.html 2>/dev/null || true
+
+# ── Helper: open startup.html with optional hash params ───────────────────────
+# Copy to a unique temp path on each call so macOS 'open' always opens a fresh
+# tab — it would focus an existing tab if the same file:// path were reused,
+# preventing hash params (error codes etc.) from being seen by the page.
 _open_startup() {
-  open "${_STARTUP_URL}$1" 2>/dev/null || xdg-open "${_STARTUP_URL}$1" 2>/dev/null || true
+  # $1 = optional param string WITHOUT leading #, e.g. "e=nopython&os=darwin"
+  # macOS 'open' silently drops URL fragments for file:// URLs, so we can't
+  # pass error codes via location.hash. Instead we inject them directly into
+  # the HTML as a JS variable before the browser ever opens the file.
+  local params="${1:-}"
+  local tmp="/tmp/butterfly-startup-$$.html"
+  cp "$SCRIPT_DIR/startup.html" "$tmp"
+  chmod 600 "$tmp" 2>/dev/null || true   # readable only by the current user
+  if [ -n "$params" ]; then
+    # Escape & → \& so sed doesn't expand it as "matched text" in replacement.
+    local safe="${params//&/\\&}"
+    sed -i.bak "s|</head>|<script>window.__BF_PARAMS='${safe}';</script></head>|" "$tmp"
+    rm -f "${tmp}.bak"
+  fi
+  open "file://${tmp}" 2>/dev/null || xdg-open "file://${tmp}" 2>/dev/null || true
 }
 
-# ── Open startup page immediately (before any slow checks) ────────────────────
-_open_startup "#os=$OS"
-
 # ── Python detection ──────────────────────────────────────────────────────────
+# Check Python BEFORE opening any browser page so that on failure we open the
+# error URL as the very first (fresh) tab — no existing tab to conflict with.
 PYTHON=""
 for candidate in python3 python3.13 python3.12 python3.11; do
   if command -v "$candidate" &>/dev/null; then
@@ -30,11 +46,17 @@ for candidate in python3 python3.13 python3.12 python3.11; do
     fi
   fi
 done
+# Allow forcing the no-python error path for testing: SIMULATE_NO_PYTHON=1 ./run.sh
+[ "${SIMULATE_NO_PYTHON:-}" = "1" ] && PYTHON=""
+
 if [ -z "$PYTHON" ]; then
-  _open_startup "#e=nopython&os=$OS"
+  _open_startup "e=nopython&os=$OS"
   echo "Error: Python 3.11+ required. See the browser window for install instructions."
   exit 1
 fi
+
+# ── Open startup page (Python confirmed present) ──────────────────────────────
+_open_startup
 
 # ── Bootstrap config files on first run ──────────────────────────────────────
 if [ ! -f config.yaml ]; then
@@ -71,7 +93,7 @@ while kill -0 "$PIP_PID" 2>/dev/null; do printf "."; sleep 1; done
 wait "$PIP_PID"; PIP_EXIT=$?
 if [ $PIP_EXIT -ne 0 ]; then
   echo " failed."
-  _open_startup "#e=pipfail&os=$OS"
+  _open_startup "e=pipfail&os=$OS"
   echo "Error: dependency install failed. See the browser window for details."
   exit 1
 fi
@@ -89,6 +111,6 @@ fi
 
 # ── Launch ────────────────────────────────────────────────────────────────────
 echo "Starting Balance Forecast at http://localhost:5002"
-python server.py &
+"$PYTHON" server.py &
 SERVER_PID=$!
 wait $SERVER_PID
