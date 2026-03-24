@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Account Balance Forecast for Monarch Money</title>
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <title>Butterfly Effect</title>
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
   <script>(function(){var t=localStorage.getItem('theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -66,19 +67,25 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background: var(--bg);
       color: var(--text);
-      min-height: 100vh;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
 
     header {
       background: var(--header-bg);
       border-bottom: 1px solid var(--border);
-      padding: 18px 32px;
+      padding: 7px 18px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      flex-shrink: 0;
+      gap: 12px;
     }
-    header h1 { font-size: 1.25rem; font-weight: 600; }
-    .meta { font-size: 0.8rem; color: var(--text-secondary); }
+    header h1 { font-size: 1.05rem; font-weight: 700; letter-spacing: -0.01em; line-height: 1.2; }
+    .app-subtitle { font-size: 0.66rem; color: var(--text-secondary); margin-top: 1px; }
+    .meta { font-size: 0.74rem; color: var(--text-secondary); }
 
     .refresh-btn {
       background: #0071e3;
@@ -160,7 +167,7 @@
     .settings-link:hover { background: var(--surface-2); color: var(--text); }
     [data-theme="dark"] .settings-link { color: var(--text-mid); border-color: var(--border); }
 
-    main { max-width: 1100px; margin: 0 auto; padding: 28px 24px; }
+    main { flex: 1; overflow: hidden; padding: 0; display: flex; flex-direction: column; position: relative; }
 
     .error-box {
       background: var(--error-bg);
@@ -172,6 +179,122 @@
       margin-bottom: 24px;
     }
     .error-box h2 { font-size: 1rem; margin-bottom: 6px; }
+
+    /* ── Two-column fixed layout ──────────────────────────────────────────── */
+    .dash-layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* Left column — wider so the chart has breathing room */
+    .dash-left {
+      width: 460px;
+      flex-shrink: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 14px 14px 32px 18px;
+      border-right: 1px solid var(--border);
+    }
+    .dash-left .cards {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .dash-left .card           { padding: 11px 14px; border-radius: 10px; }
+    .dash-left .card .label    { font-size: 0.68rem; margin-bottom: 4px; }
+    .dash-left .card .value    { font-size: 1.25rem; }
+    .dash-left .chart-wrap     { margin-bottom: 12px; padding: 12px 14px; }
+    .dash-left .chart-wrap h2  { font-size: 0.82rem; margin-bottom: 10px; }
+    .dash-left .chart-wrap canvas { max-height: 220px; }
+    .dash-left .recs           { margin-bottom: 12px; }
+    .dash-left .scenario-card  { margin-bottom: 10px; }
+
+    /* Right side — schedule fills remaining space after resize handle */
+    .dash-right {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    /* Drag-to-resize handle between left and right columns */
+    .resize-handle {
+      width: 5px;
+      flex-shrink: 0;
+      cursor: col-resize;
+      background: transparent;
+      position: relative;
+      z-index: 10;
+      transition: background 0.15s;
+    }
+    .resize-handle::after {
+      content: '';
+      position: absolute;
+      inset: 0 -3px;   /* widen the grab target without widening visually */
+    }
+    .resize-handle:hover,
+    .resize-handle.dragging { background: #0a84ff55; }
+
+    /* Schedule column — fills whatever space the handle leaves */
+    .events-col {
+      flex: 1;
+      min-width: 260px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      height: 100%;
+    }
+    .events-col .events-wrap {
+      border-radius: 0;
+      border: none;
+    }
+
+    /* AI Insights drawer — slides in from the right over the schedule */
+    .ai-drawer {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 360px;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      box-shadow: -6px 0 28px rgba(0,0,0,0.13);
+      transform: translateX(100%);
+      transition: transform 0.28s ease;
+      z-index: 50;
+      overflow-y: auto;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .ai-drawer.open { transform: translateX(0); }
+
+    /* AI panel inside the drawer — flush edges */
+    .ai-drawer .ai-panel {
+      border-radius: 0;
+      border: none;
+      margin-bottom: 0;
+      flex: 1;
+    }
+    .ai-drawer .ai-header {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background: var(--surface);
+    }
+
+    /* AI toggle button in header */
+    #aiToggleBtn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.78rem;
+    }
+    #aiToggleBtn.active {
+      background: var(--surface-2);
+      color: #0a84ff;
+      border-color: #0a84ff44;
+    }
 
     /* Summary cards */
     .cards {
@@ -300,14 +423,15 @@
     .evt-pill.unknown { border-right: none; }
     /* Color-source legend row above the forecast table */
     .pill-legend { display: flex; flex-wrap: wrap; align-items: center;
-                   gap: 4px; margin: 0 0 10px; }
+                   gap: 4px; padding: 10px 22px 12px; }
     .pill-legend .evt-pill { pointer-events: none; }
     /* Transaction action popover */
     #pillPopover {
       position: fixed; z-index: 600;
       background: var(--surface); border: 1px solid var(--border);
       border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.14);
-      min-width: 230px; max-width: 300px; overflow: hidden;
+      min-width: 230px; max-width: 300px;
+      max-height: calc(100vh - 24px); overflow-y: auto; overflow-x: hidden;
     }
     .pill-pop-header { padding: 10px 14px 8px; border-bottom: 1px solid var(--border-light); }
     .pill-pop-title  { font-size: 0.85rem; font-weight: 600; color: var(--text); }
@@ -572,6 +696,20 @@
   transition:opacity 0.3s ease;
 "></div>
 <script>
+// ── CSRF: attach X-CSRF-Token header to every API fetch automatically ────────
+(function() {
+  var _csrfToken = (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
+  var _origFetch = window.fetch;
+  window.fetch = function(url, opts) {
+    opts = opts || {};
+    if (typeof url === 'string' && url.startsWith('/api')) {
+      opts.headers = Object.assign({}, opts.headers, { 'X-CSRF-Token': _csrfToken });
+    }
+    return _origFetch.call(this, url, opts);
+  };
+})();
+</script>
+<script>
 (function() {
   var _toastTimer = null;
   function _showToast(msg, isError) {
@@ -595,17 +733,30 @@
 </script>
 
 <header>
-  <div>
-    <h1>Balance Forecast</h1>
-    <div class="meta" style="font-size:0.72rem;margin-top:1px;">Account Balance Forecast for Monarch Money</div>
-    {% if data %}
-    <div class="meta">Updated {{ data.refreshed_at }}</div>
-    {% endif %}
-    <span id="aiTokenMeta" class="meta" style="display:none;"></span>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <svg width="34" height="34" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="flex-shrink:0;">
+      <path d="M15 15 C12 9 4 7 5 13 C6 17 12 17 15 17 Z" fill="#30d158"/>
+      <path d="M15 17 C9 21 3 27 7 29 C11 31 14 22 15 17 Z" fill="#1ea83c"/>
+      <path d="M17 15 C20 9 28 7 27 13 C26 17 20 17 17 17 Z" fill="#0a84ff"/>
+      <path d="M17 17 C23 21 29 27 25 29 C21 31 18 22 17 17 Z" fill="#0060cc"/>
+      <ellipse cx="16" cy="16" rx="2" ry="6" fill="#1c1c1e"/>
+      <circle cx="16" cy="16" r="3" fill="#ff9f0a"/>
+      <line x1="16" y1="13.5" x2="16" y2="18.5" stroke="#1c1c1e" stroke-width="1.1" stroke-linecap="round"/>
+      <line x1="14.3" y1="15" x2="17.7" y2="15" stroke="#1c1c1e" stroke-width="1" stroke-linecap="round"/>
+      <line x1="14.3" y1="17" x2="17.7" y2="17" stroke="#1c1c1e" stroke-width="1" stroke-linecap="round"/>
+    </svg>
+    <div>
+      <h1>Butterfly Effect</h1>
+      <div class="app-subtitle">Balance forecast for Monarch Money</div>
+      <span id="aiTokenMeta" class="meta" style="display:none;"></span>
+    </div>
   </div>
-  <div style="display:flex;gap:10px;align-items:center;">
-    <button id="themeToggle" class="settings-link" onclick="toggleTheme()" title="Toggle dark/light mode" style="padding:6px 10px;font-size:1rem;">🌙</button>
-    <a href="/settings" class="settings-link" title="Configure app settings"><svg width="20" height="20" viewBox="0 0 32 32" style="flex-shrink:0;display:block;" xmlns="http://www.w3.org/2000/svg"><path d="M15 15 C12 9 4 7 5 13 C6 17 12 17 15 17 Z" fill="#30d158"/><path d="M15 17 C9 21 3 27 7 29 C11 31 14 22 15 17 Z" fill="#1ea83c"/><path d="M17 15 C20 9 28 7 27 13 C26 17 20 17 17 17 Z" fill="#0a84ff"/><path d="M17 17 C23 21 29 27 25 29 C21 31 18 22 17 17 Z" fill="#0060cc"/><ellipse cx="16" cy="16" rx="2" ry="6" fill="#1c1c1e"/><circle cx="16" cy="16" r="3" fill="#ff9f0a"/><line x1="16" y1="13.5" x2="16" y2="18.5" stroke="#1c1c1e" stroke-width="1.1" stroke-linecap="round"/><line x1="14.3" y1="15" x2="17.7" y2="15" stroke="#1c1c1e" stroke-width="1" stroke-linecap="round"/><line x1="14.3" y1="17" x2="17.7" y2="17" stroke="#1c1c1e" stroke-width="1" stroke-linecap="round"/><circle cx="25" cy="25" r="8.5" fill="var(--surface,#f2f2f7)"/><text x="25" y="28.5" text-anchor="middle" font-size="11.5" fill="var(--text-secondary,#6e6e73)" style="font-family:system-ui,-apple-system,sans-serif;">⚙</text></svg> Settings</a>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <button id="themeToggle" class="settings-link" onclick="toggleTheme()" title="Toggle dark/light mode" style="padding:5px 8px;font-size:0.95rem;">🌙</button>
+    <a href="/settings" class="settings-link" title="Configure app settings" style="padding:5px 10px;"><svg width="16" height="16" viewBox="0 0 32 32" style="flex-shrink:0;display:block;" xmlns="http://www.w3.org/2000/svg"><path d="M15 15 C12 9 4 7 5 13 C6 17 12 17 15 17 Z" fill="#30d158"/><path d="M15 17 C9 21 3 27 7 29 C11 31 14 22 15 17 Z" fill="#1ea83c"/><path d="M17 15 C20 9 28 7 27 13 C26 17 20 17 17 17 Z" fill="#0a84ff"/><path d="M17 17 C23 21 29 27 25 29 C21 31 18 22 17 17 Z" fill="#0060cc"/><ellipse cx="16" cy="16" rx="2" ry="6" fill="#1c1c1e"/><circle cx="16" cy="16" r="3" fill="#ff9f0a"/><line x1="16" y1="13.5" x2="16" y2="18.5" stroke="#1c1c1e" stroke-width="1.1" stroke-linecap="round"/><line x1="14.3" y1="15" x2="17.7" y2="15" stroke="#1c1c1e" stroke-width="1" stroke-linecap="round"/><line x1="14.3" y1="17" x2="17.7" y2="17" stroke="#1c1c1e" stroke-width="1" stroke-linecap="round"/><circle cx="25" cy="25" r="8.5" fill="var(--surface,#f2f2f7)"/><text x="25" y="28.5" text-anchor="middle" font-size="11.5" fill="var(--text-secondary,#6e6e73)" style="font-family:system-ui,-apple-system,sans-serif;">⚙</text></svg> Settings</a>
+    {% if data %}
+    <button id="aiToggleBtn" class="settings-link" onclick="toggleAiDrawer()" title="Toggle AI Insights panel" style="padding:5px 10px;">✦ AI Insights</button>
+    {% endif %}
     <div class="split-btn-wrap" id="refreshSplitWrap">
       <button class="refresh-btn split-main" id="refreshForecastBtn"
               onclick="refreshForecast()"
@@ -624,6 +775,7 @@
 <main>
 
 {% if error %}
+<div style="padding:20px 24px;">
 <div class="error-box">
   <h2>Setup needed</h2>
   <p>{{ error }}</p>
@@ -631,9 +783,32 @@
     <a href="/settings" style="color:var(--error-text);font-weight:600;">→ Open Settings</a>
   </p>
 </div>
+</div>
 {% endif %}
 
 {% if data %}
+
+<!-- AI Insights drawer — slides in from the right, overlays the schedule -->
+<div class="ai-drawer" id="aiDrawer">
+  <div class="ai-panel" id="aiPanel">
+    <div class="ai-header">
+      <button id="aiCollapseBtn" onclick="toggleAiDrawer()" title="Close AI Insights"
+              style="background:none;border:none;cursor:pointer;font-size:0.75rem;line-height:1;color:var(--text-tertiary);padding:0 4px 0 0;flex-shrink:0;transition:transform 0.2s;display:inline-block;">&#215;</button>
+      <h2>AI Insights</h2>
+      <span class="ai-status loading" id="aiStatus">Loading…</span>
+      <button id="dashRunAiBtn" onclick="dashRunAiAnalysis()"
+              style="margin-left:auto;background:none;border:1px solid #d2d2d7;border-radius:6px;padding:3px 10px;font-size:0.75rem;font-weight:500;color:#6e6e73;cursor:pointer;"
+              title="Re-run AI analysis — may take a few minutes">▶ Refresh AI</button>
+    </div>
+    <div id="dashAiRunLog" style="display:none;font-size:0.72rem;font-family:monospace;color:#aeaeb2;padding:5px 22px 6px;background:var(--surface-2);border-bottom:1px solid var(--border-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+    <div id="aiContent">
+      <div class="ai-not-available">Fetching AI analysis…</div>
+    </div>
+  </div>
+</div>
+
+<div class="dash-layout">
+<div class="dash-left">
 
 <!-- Summary cards -->
 {% set min_balance = data.days | map(attribute='balance') | min %}
@@ -691,23 +866,6 @@
   {% else %}
   <div class="no-recs">No transfers needed — balance stays above threshold throughout the forecast period.</div>
   {% endif %}
-</div>
-
-<!-- AI Insights panel — loads async after main content -->
-<div class="ai-panel" id="aiPanel" style="display:none;">
-  <div class="ai-header">
-    <button id="aiCollapseBtn" onclick="toggleAiPanel()" title="Collapse"
-            style="background:none;border:none;cursor:pointer;font-size:0.75rem;line-height:1;color:var(--text-tertiary);padding:0 4px 0 0;flex-shrink:0;transition:transform 0.2s;display:inline-block;">&#9660;</button>
-    <h2>AI Insights</h2>
-    <span class="ai-status loading" id="aiStatus">Loading…</span>
-    <button id="dashRunAiBtn" onclick="dashRunAiAnalysis()"
-            style="margin-left:auto;background:none;border:1px solid #d2d2d7;border-radius:6px;padding:3px 10px;font-size:0.75rem;font-weight:500;color:#6e6e73;cursor:pointer;"
-            title="Re-run AI analysis — may take a few minutes">▶ Refresh AI</button>
-  </div>
-  <div id="dashAiRunLog" style="display:none;font-size:0.72rem;font-family:monospace;color:#aeaeb2;padding:5px 22px 6px;background:var(--surface-2);border-bottom:1px solid var(--border-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
-  <div id="aiContent">
-    <div class="ai-not-available">Fetching AI analysis…</div>
-  </div>
 </div>
 
 <!-- Scenario Modeling card -->
@@ -796,12 +954,30 @@
       to update your chart.
     </div>
   </div>
+
+  <div style="border-top:1px solid var(--border-light);margin-top:16px;padding-top:14px;">
+    <h3 style="font-size:0.85rem;font-weight:600;margin:0 0 4px;color:var(--text);">Billing Day Overrides</h3>
+    <p class="meta" style="margin:0 0 10px;">Pin a recurring item to a specific day of the month (e.g. AMEX Gold always hits on the 16th). Use the <strong>📅 Change billing day</strong> button in any Monarch pill's popover to set one.</p>
+    <div id="dayOverrideList"><span style="font-size:0.82rem;color:#aeaeb2;font-style:italic;">Loading…</span></div>
+  </div>
 </div>
 </details>
 
+</div><!-- end .dash-left -->
+
+<div class="resize-handle" id="colResizeHandle" title="Drag to resize"></div>
+
+<div class="dash-right">
+
+<!-- Transaction schedule column -->
+<div class="events-col">
+
 <!-- Day-by-day events table -->
 <div class="events-wrap">
-  <h2>Scheduled Payments &amp; Credits</h2>
+  <div style="padding:12px 18px 0;border-bottom:none;">
+    <h2 style="font-size:0.9rem;font-weight:600;">Scheduled Payments &amp; Credits</h2>
+    <div class="meta" style="margin-top:2px;">Updated {{ data.refreshed_at }}</div>
+  </div>
   <div class="pill-legend">
     <span style="font-size:0.74rem;color:var(--text-tertiary);margin-right:2px;line-height:1.9;">Key:</span>
     <span class="evt-pill monarch"   style="cursor:default;">Monarch</span>
@@ -855,7 +1031,11 @@
       {% endfor %}
     </tbody>
   </table>
-</div>
+</div><!-- end .events-wrap -->
+
+</div><!-- end .events-col -->
+</div><!-- end .dash-right -->
+</div><!-- end .dash-layout -->
 
 <!-- Chart.js script -->
 <script>
@@ -950,7 +1130,7 @@
             callback: v => '$' + v.toLocaleString(),
             font: { size: 11 }
           },
-          grid: { color: isDark ? 'rgba(255,255,255,0.07)' : '#dddde5' }
+          grid: { color: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.09)' }
         }
       }
     }
@@ -1049,8 +1229,6 @@
     var panel = document.getElementById('aiPanel');
     var status = document.getElementById('aiStatus');
     var content = document.getElementById('aiContent');
-
-    panel.style.display = '';
 
     // Status badge
     if (data.status === 'fresh') {
@@ -1261,31 +1439,29 @@
   // Fetch asynchronously so it doesn't block the chart
   window.loadAiInsights();
 
-  // Collapse / expand AI Insights panel
-  window.toggleAiPanel = function() {
-    var content = document.getElementById('aiContent');
-    var runLog  = document.getElementById('dashAiRunLog');
-    var btn     = document.getElementById('aiCollapseBtn');
-    var collapsed = localStorage.getItem('_aiPanelCollapsed') === '1';
-    if (collapsed) {
-      if (content) content.style.display = '';
-      if (btn) { btn.style.transform = ''; btn.title = 'Collapse'; }
-      localStorage.removeItem('_aiPanelCollapsed');
+  // Open / close AI Insights drawer
+  window.toggleAiDrawer = function() {
+    var drawer  = document.getElementById('aiDrawer');
+    var toggleBtn = document.getElementById('aiToggleBtn');
+    if (!drawer) return;
+    var nowOpen = drawer.classList.toggle('open');
+    if (toggleBtn) toggleBtn.classList.toggle('active', nowOpen);
+    if (nowOpen) {
+      localStorage.setItem('_aiDrawerOpen', '1');
     } else {
-      if (content) content.style.display = 'none';
-      if (runLog && runLog.style.display !== 'none') runLog.style.display = 'none';
-      if (btn) { btn.style.transform = 'rotate(-90deg)'; btn.title = 'Expand'; }
-      localStorage.setItem('_aiPanelCollapsed', '1');
+      localStorage.removeItem('_aiDrawerOpen');
     }
   };
+  // Keep legacy name working in case anything else calls it
+  window.toggleAiPanel = window.toggleAiDrawer;
 
-  // Restore collapsed state on page load
+  // Restore drawer open state on page load
   (function() {
-    if (localStorage.getItem('_aiPanelCollapsed') === '1') {
-      var c = document.getElementById('aiContent');
-      var b = document.getElementById('aiCollapseBtn');
-      if (c) c.style.display = 'none';
-      if (b) { b.style.transform = 'rotate(-90deg)'; b.title = 'Expand'; }
+    if (localStorage.getItem('_aiDrawerOpen') === '1') {
+      var drawer = document.getElementById('aiDrawer');
+      var btn    = document.getElementById('aiToggleBtn');
+      if (drawer) drawer.classList.add('open');
+      if (btn)    btn.classList.add('active');
     }
   })();
 
@@ -1306,9 +1482,9 @@
           .then(function(s2) {
             var runLog = document.getElementById('dashAiRunLog');
             if (s2.log && s2.log.length) {
-              if (runLog) { runLog.textContent = s2.log[s2.log.length - 1]; runLog.style.display = ''; }
+              if (runLog) { runLog.textContent = _aiStageLabel(s2.log); runLog.style.display = ''; }
             } else if (s2.running && runLog) {
-              runLog.textContent = 'Starting\u2026'; runLog.style.display = '';
+              runLog.textContent = _aiStageLabel(null); runLog.style.display = '';
             }
             if (!s2.running) {
               clearInterval(_dashAiPollInterval);
@@ -1329,6 +1505,20 @@
 <script>
 function _escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function _aiStageLabel(log) {
+  if (!log || !log.length) return '🦋 Waking up…';
+  var all = log.join(' ');
+  if (all.includes('✓ Insights written'))             return '✨ Bottling up the wisdom…';
+  if (all.includes('Calling Claude') ||
+      all.includes('Calling OpenAI') ||
+      all.includes('Calling Gemini'))                  return '🤖 Consulting the AI oracle… (grab a coffee)';
+  if (all.includes('Building deterministic forecast')) return '🔮 Crunching the numbers…';
+  if (all.includes('Transactions:') ||
+      all.includes('Balance:'))                        return '📊 Counting your debts and credits…';
+  if (all.includes('Fetching'))                        return '📡 Pulling your financial life from Monarch…';
+  return '🦋 Starting up…';
 }
 
 function loadPayOverrides() {
@@ -1575,6 +1765,55 @@ function clearPayOverride(nameKey) {
 
 loadPayOverrides();
 
+function loadDayOverrides() {
+  fetch('/api/payment-day-overrides')
+    .then(function(r) { return r.json(); })
+    .then(renderDayOverrides)
+    .catch(function() {
+      var list = document.getElementById('dayOverrideList');
+      if (list) list.innerHTML = '<p style="font-size:0.82rem;color:#ff3b30;">Could not load day overrides.</p>';
+    });
+}
+
+function renderDayOverrides(data) {
+  var list = document.getElementById('dayOverrideList');
+  if (!list) return;
+  if (!data.length) {
+    list.innerHTML = '<p style="font-size:0.82rem;color:#aeaeb2;font-style:italic;margin:6px 0 0;">'
+      + 'No billing day overrides set.</p>';
+    return;
+  }
+  var html = '<table class="pay-override-table"><thead><tr>'
+    + '<th>Name</th><th>Day</th><th>Note</th><th>Set</th><th></th>'
+    + '</tr></thead><tbody>';
+  data.forEach(function(o) {
+    var k = (o.name || '').toLowerCase();
+    html += '<tr>'
+      + '<td>' + _escHtml(o.name || '') + '</td>'
+      + '<td style="font-weight:500;">' + _escHtml(String(o.day)) + '</td>'
+      + '<td style="color:#6e6e73;">' + _escHtml(o.note || '') + '</td>'
+      + '<td style="color:#aeaeb2;white-space:nowrap;">' + _escHtml(o.updated || '') + '</td>'
+      + '<td><button class="pov-clear-btn" title="Remove day override" '
+      + 'data-key="' + _escHtml(k) + '" '
+      + 'onclick="clearDayOverride(this.dataset.key)">&#215;</button></td>'
+      + '</tr>';
+  });
+  html += '</tbody></table>';
+  list.innerHTML = html;
+}
+
+function clearDayOverride(nameKey) {
+  if (!confirm('Remove billing day override for "' + nameKey + '"?\nThe forecast will revert to Monarch\'s date.')) return;
+  fetch('/api/payment-day-overrides', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({name: nameKey, clear: true})
+  })
+  .then(function(r) { return r.json(); })
+  .then(loadDayOverrides)
+  .catch(function() { showError('Could not remove day override. Check the server log.'); });
+}
+
 function loadPaySkips() {
   fetch('/api/payment-skips')
     .then(function(r) { return r.json(); })
@@ -1674,6 +1913,7 @@ function clearPaySkip(name, month) {
 }
 
 loadPaySkips();
+loadDayOverrides();
 </script>
 
 <!-- Pill popover — inline transaction editing -->
@@ -1732,6 +1972,8 @@ function openPillPopover(pill) {
         + '\u270e Override Amount (all months)</button>';
       body += '<button class="pill-pop-action danger" onclick="pillSuppress(' + jd + ')">'
         + '\u229d Suppress Entirely</button>';
+      body += '<button class="pill-pop-action" onclick="pillChangeDay(' + jd + ')">'
+        + '\uD83D\uDCC5 Change billing day</button>';
     }
   } else if (source === 'scenario') {
     body += '<button class="pill-pop-action danger" onclick="pillDeleteScenario(' + js + ',' + jd + ')">'
@@ -1744,11 +1986,26 @@ function openPillPopover(pill) {
 
   var pop = document.getElementById('pillPopover');
   pop.style.display = 'block';
-  var r = pill.getBoundingClientRect();
-  var pw = pop.offsetWidth || 240;
-  var left = Math.min(r.left, window.innerWidth - pw - 12);
-  pop.style.top  = (r.bottom + 6) + 'px';
-  pop.style.left = Math.max(8, left) + 'px';
+  var r   = pill.getBoundingClientRect();
+  var pw  = pop.offsetWidth  || 240;
+  var ph  = pop.offsetHeight || 180;
+  var gap = 6, margin = 8;
+
+  // Horizontal: align to pill left, clamp so it never exits the right edge
+  var left = Math.max(margin, Math.min(r.left, window.innerWidth - pw - margin));
+
+  // Vertical: prefer below; flip above if it clips; clamp if neither fits
+  var top;
+  if (r.bottom + gap + ph <= window.innerHeight - margin) {
+    top = r.bottom + gap;                          // fits below
+  } else if (r.top - gap - ph >= margin) {
+    top = r.top - gap - ph;                        // fits above
+  } else {
+    top = Math.max(margin, window.innerHeight - ph - margin); // clamp to bottom
+  }
+
+  pop.style.left = left + 'px';
+  pop.style.top  = top  + 'px';
 }
 
 document.addEventListener('click', function(e) {
@@ -1873,6 +2130,36 @@ function pillSuppress(desc) {
   .then(function(r) { return r.json(); })
   .then(function() { loadPayOverrides(); showStaleBanner('"' + desc + '" suppressed from forecast'); })
   .catch(function() { showError('Could not suppress. Check the server log.'); });
+}
+
+function pillChangeDay(desc) {
+  var inner = document.getElementById('pillPopoverInner');
+  var row = document.createElement('div');
+  row.className = 'pill-pop-amount-row';
+  row.innerHTML = '<span style="color:var(--text-secondary);font-size:0.84rem;flex-shrink:0;">Day of month (1\u201328):</span>'
+    + '<input id="pillDayInput" type="number" min="1" max="28" placeholder="16" style="width:60px;flex-shrink:0;" />'
+    + '<button onclick="pillChangeDaySave(' + _escHtml(JSON.stringify(desc)) + ')" style="flex-shrink:0;">Save</button>';
+  var firstBtn = inner.querySelector('.pill-pop-action');
+  if (firstBtn) inner.insertBefore(row, firstBtn);
+  else inner.appendChild(row);
+  document.getElementById('pillDayInput').focus();
+}
+
+function pillChangeDaySave(desc) {
+  var day = parseInt(document.getElementById('pillDayInput').value, 10);
+  if (isNaN(day) || day < 1 || day > 28) { showError('Enter a day 1\u201328.'); return; }
+  _closePillPopover();
+  fetch('/api/payment-day-overrides', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({name: desc, day: day, note: ''})
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    if (!d.ok) { showError(d.error || 'Could not save.'); return; }
+    showInfo('Billing day updated \u2014 recalculating\u2026');
+    recalcForecast();
+  })
+  .catch(function() { showError('Could not save. Check the server log.'); });
 }
 
 function pillDeleteScenario(sid, desc) {
@@ -2035,9 +2322,9 @@ function dashRunAiAnalysis() {
   var aiPanel = document.getElementById('aiPanel');
   if (aiPanel) aiPanel.classList.add('running');
 
-  // Show "Starting…" in log div immediately so there's no blank gap before first poll
+  // Show stage label immediately so there's no blank gap before first poll
   var runLog = document.getElementById('dashAiRunLog');
-  if (runLog) { runLog.textContent = 'Starting\u2026'; runLog.style.display = ''; }
+  if (runLog) { runLog.textContent = _aiStageLabel(null); runLog.style.display = ''; }
 
   // Disable the split button's AI option while running
   var refreshForecastBtn = document.getElementById('refreshForecastBtn');
@@ -2060,12 +2347,12 @@ function dashRunAiAnalysis() {
         fetch('/api/ai-analysis-status')
           .then(function(r) { return r.json(); })
           .then(function(s) {
-            // Show last log line as a live progress indicator
+            // Show stage-aware label as a live progress indicator
             var runLog = document.getElementById('dashAiRunLog');
             if (s.log && s.log.length) {
-              if (runLog) { runLog.textContent = s.log[s.log.length - 1]; runLog.style.display = ''; }
+              if (runLog) { runLog.textContent = _aiStageLabel(s.log); runLog.style.display = ''; }
             } else if (s.running && runLog) {
-              runLog.textContent = 'Starting\u2026'; runLog.style.display = '';
+              runLog.textContent = _aiStageLabel(null); runLog.style.display = '';
             }
             if (!s.running) {
               clearInterval(_dashAiPollInterval);
@@ -2107,6 +2394,53 @@ function dashRunAiAnalysis() {
       if (refreshForecastBtn) refreshForecastBtn.disabled = false;
     });
 }
+</script>
+
+<script>
+// ── Drag-to-resize column handle ─────────────────────────────────────────────
+(function() {
+  var handle  = document.getElementById('colResizeHandle');
+  var leftCol = document.querySelector('.dash-left');
+  if (!handle || !leftCol) return;
+
+  // Limits are viewport-relative so the chart never disappears.
+  // Minimum ~34% keeps cards + chart comfortably visible at any screen size.
+  function getMinW() { return Math.round(window.innerWidth * 0.34); }
+  function getMaxW() { return Math.round(window.innerWidth * 0.62); }
+
+  // Restore saved width, clamping to current viewport limits
+  var saved = parseFloat(localStorage.getItem('_dashLeftWidth'));
+  if (saved) {
+    leftCol.style.width = Math.max(getMinW(), Math.min(getMaxW(), saved)) + 'px';
+  }
+
+  handle.addEventListener('mousedown', function(e) {
+    var startX = e.clientX;
+    var startW = leftCol.getBoundingClientRect().width;
+
+    handle.classList.add('dragging');
+    document.body.style.cursor    = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    function onMove(e) {
+      var newW = Math.max(getMinW(), Math.min(getMaxW(), startW + (e.clientX - startX)));
+      leftCol.style.width = newW + 'px';
+    }
+
+    function onUp() {
+      handle.classList.remove('dragging');
+      document.body.style.cursor    = '';
+      document.body.style.userSelect = '';
+      localStorage.setItem('_dashLeftWidth', leftCol.getBoundingClientRect().width);
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup',   onUp);
+    }
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup',   onUp);
+    e.preventDefault();
+  });
+})();
 </script>
 
 {% endif %}
@@ -2188,8 +2522,9 @@ function toggleTheme() {
 </script>
 {% endif %}
 
-<footer style="text-align:center;padding:16px 24px 24px;font-size:0.75rem;color:var(--text-tertiary);border-top:1px solid var(--border);margin-top:8px;">
-  <div style="margin-bottom:4px;">Unofficial tool — not affiliated with or endorsed by Monarch Money &nbsp;·&nbsp; Your data never leaves this device</div>
+<footer style="text-align:center;padding:10px 24px 14px;font-size:0.72rem;color:var(--text-tertiary);border-top:1px solid var(--border);flex-shrink:0;">
+  <span style="color:var(--text-tertiary);margin-right:6px;">v{{ version }}</span>&nbsp;·&nbsp;
+  Unofficial tool — not affiliated with Monarch Money &nbsp;·&nbsp; Your data never leaves this device &nbsp;·&nbsp;
   Created by <a href="mailto:github@vendaface.org" style="color:var(--text-secondary);text-decoration:none;">Vendaface</a>
   with <a href="https://claude.ai/code" style="color:var(--text-secondary);text-decoration:none;">Claude Code</a>
   &nbsp;·&nbsp;

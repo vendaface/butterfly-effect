@@ -6,6 +6,7 @@ Run via: python server.py  (or ./run.sh)
 import json
 import os
 import re
+import secrets
 import subprocess
 import sys
 import threading
@@ -13,7 +14,7 @@ import uuid
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
-from flask import Flask, jsonify, redirect, render_template, request, url_for
+from flask import Flask, jsonify, redirect, render_template, request, url_for, Response
 
 from config import (
     _CONFIG_PATH,
@@ -40,6 +41,7 @@ from storage import (
     _ACCOUNTS_CACHE_FILE,
     _DISMISSED_SUGGESTIONS_FILE,
     _INSIGHTS_FILE,
+    _PAYMENT_DAY_OVERRIDES_FILE,
     _PAYMENT_MONTHLY_AMOUNTS_FILE,
     _PAYMENT_OVERRIDES_FILE,
     _PAYMENT_SKIPS_FILE,
@@ -49,6 +51,7 @@ from storage import (
     _atomic_write,
     _load_dismissed_suggestions,
     _load_insights,
+    _load_payment_day_overrides,
     _load_payment_monthly_amounts,
     _load_payment_overrides,
     _load_payment_skips,
@@ -59,6 +62,69 @@ from storage import (
 )
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = secrets.token_hex(32)   # fresh each restart (no persistent sessions)
+
+# ── CSRF token — generated once per server process ─────────────────────────
+# Injected into every rendered page via context_processor; required as the
+# X-CSRF-Token header on every state-changing API request.  A cross-site page
+# cannot read this value (Same-Origin Policy) so it provides genuine protection
+# even for a localhost-only server.
+_CSRF_TOKEN = secrets.token_hex(32)
+
+
+@app.before_request
+def _enforce_csrf():
+    """Reject state-changing requests that lack a valid CSRF token."""
+    if request.method in ("POST", "PUT", "DELETE", "PATCH"):
+        if request.headers.get("X-CSRF-Token") != _CSRF_TOKEN:
+            return jsonify({"error": "CSRF validation failed"}), 403
+
+
+@app.after_request
+def _security_headers(response):
+    """Attach security headers to every response."""
+    # Prevent browsers from MIME-sniffing the content type
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    # Refuse to be embedded in iframes (clickjacking defence)
+    response.headers["X-Frame-Options"] = "DENY"
+    # No referrer info leaked to external sites
+    response.headers["Referrer-Policy"] = "no-referrer"
+    # Prevent caching of any API responses containing financial data
+    if request.path.startswith("/api/") or request.path == "/":
+        response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+# ── Harden permissions on sensitive data files (run once at startup) ────────
+def _harden_file_permissions() -> None:
+    """Set owner-only (600) permissions on files that contain secrets or PII."""
+    sensitive = [
+        _ENV_PATH,
+        _CONFIG_PATH,
+        Path(__file__).parent / "browser_state.json",
+        Path(__file__).parent / "insights.json",
+        Path(__file__).parent / "user_context.md",
+    ]
+    for p in sensitive:
+        try:
+            if p.exists():
+                os.chmod(p, 0o600)
+        except OSError:
+            pass
+
+
+_harden_file_permissions()
+
+
+# ── App version (read once from VERSION file) ───────────────────────────────
+_VERSION_FILE = Path(__file__).parent / "VERSION"
+_APP_VERSION  = _VERSION_FILE.read_text().strip() if _VERSION_FILE.exists() else "dev"
+
+
+@app.context_processor
+def _inject_globals():
+    """Make version and CSRF token available in every template."""
+    return dict(version=_APP_VERSION, csrf_token=_CSRF_TOKEN)
 
 # AI analysis background-run state
 _ai_running: bool = False
@@ -376,6 +442,50 @@ def api_set_payment_override():
     return jsonify({"ok": True})
 
 
+# ── API: billing-day overrides ────────────────────────────────────────────────
+
+@app.route("/api/payment-day-overrides", methods=["GET"])
+def api_payment_day_overrides_get():
+    """Return the list of billing-day override records."""
+    return jsonify(list(_load_payment_day_overrides().values()))
+
+
+@app.route("/api/payment-day-overrides", methods=["POST"])
+def api_payment_day_overrides_post():
+    """
+    Save or clear a billing-day override.
+    Body: {"name": "AMEX Gold", "day": 16, "note": "Closes on 16th"}
+    To clear: {"name": "AMEX Gold", "clear": true}
+    Returns: {"ok": true}
+    """
+    body  = request.get_json(force=True) or {}
+    name  = (body.get("name") or "").strip()
+    note  = (body.get("note") or "").strip()
+    clear = body.get("clear", False)
+    if not name:
+        return jsonify({"error": "name required"}), 400
+
+    overrides = _load_payment_day_overrides()
+    key = name.lower()
+
+    if clear:
+        overrides.pop(key, None)
+    else:
+        day = body.get("day")
+        if not isinstance(day, int) or not (1 <= day <= 28):
+            return jsonify({"error": "day must be an integer 1–28"}), 400
+        overrides[key] = {
+            "name":    name,
+            "day":     day,
+            "note":    note,
+            "updated": datetime.now().strftime("%Y-%m-%d"),
+        }
+
+    _atomic_write(_PAYMENT_DAY_OVERRIDES_FILE, json.dumps(overrides, indent=2))
+    _clear_forecast_cache()
+    return jsonify({"ok": True})
+
+
 # ── API: payment skips ─────────────────────────────────────────────────────────
 
 @app.route("/api/payment-skips", methods=["GET", "POST"])
@@ -648,15 +758,17 @@ def api_settings_calendar():
 def api_settings_app():
     body = request.get_json(force=True) or {}
     try:
-        port  = int(body.get("port", 5002))
-        debug = bool(body.get("debug", False))
+        port = int(body.get("port", 5002))
         if not (1024 <= port <= 65535):
             return jsonify({"error": "port must be 1024–65535"}), 400
     except (ValueError, TypeError) as e:
         return jsonify({"error": str(e)}), 400
 
     config = _load_config()
-    config = _deep_merge(config, {"app": {"port": port, "debug": debug}})
+    # debug mode is intentionally not settable via the API — it must be changed
+    # directly in config.yaml to prevent a cross-site request from enabling the
+    # Flask interactive debugger (which exposes a Python REPL).
+    config = _deep_merge(config, {"app": {"port": port}})
     _save_config(config)
     return jsonify({"ok": True, "restart_required": True})
 
@@ -710,7 +822,7 @@ def api_run_ai_analysis():
         global _ai_running, _ai_run_log
         try:
             proc = subprocess.Popen(
-                [sys.executable, str(Path(__file__).parent / "ai_daily.py")],
+                [sys.executable, "-u", str(Path(__file__).parent / "ai_daily.py")],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
@@ -933,6 +1045,19 @@ def api_monarch_accounts():
     compact = [_compact_account(a) for a in accounts if _is_bill_paying_account(a)]
     _atomic_write(_ACCOUNTS_CACHE_FILE, json.dumps(compact, indent=2))
     return jsonify(compact)
+
+
+# ── Startup ping ───────────────────────────────────────────────────────────────
+import base64 as _b64
+_PING_PNG = _b64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+)
+
+@app.route("/_ping")
+def startup_ping():
+    """1×1 transparent PNG — lets startup.html poll via <img> without CORS."""
+    return Response(_PING_PNG, mimetype="image/png",
+                    headers={"Cache-Control": "no-store"})
 
 
 # ── Entry point ────────────────────────────────────────────────────────────────

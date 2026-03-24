@@ -6,7 +6,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-VENV="$HOME/.cache/balance-forecast-venv"
+VENV="$SCRIPT_DIR/.venv"
 PID_FILE="$SCRIPT_DIR/.server.pid"
 LOG_FILE="$SCRIPT_DIR/.server.log"
 PORT=5002
@@ -77,11 +77,14 @@ cmd_start() {
     return 0
   fi
 
+  # Open startup page immediately — JS polls /_ping and auto-redirects when Flask is ready
+  open "$SCRIPT_DIR/startup.html" 2>/dev/null || true
+
   _ensure_venv
   _activate
   pip install -q -r requirements.txt
 
-  echo "Starting Balance Forecast..."
+  echo "Starting Butterfly Effect..."
   nohup python server.py > "$LOG_FILE" 2>&1 &
   echo $! > "$PID_FILE"
   sleep 1
@@ -90,7 +93,7 @@ cmd_start() {
     local pid
     pid=$(cat "$PID_FILE")
     echo "✓ Server started (PID $pid) at http://localhost:$PORT"
-    open "http://localhost:$PORT" 2>/dev/null || true
+    # startup.html handles browser redirect — no second open needed
   else
     echo "✗ Server failed to start. Check logs:"
     tail -20 "$LOG_FILE"

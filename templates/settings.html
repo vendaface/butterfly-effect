@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Settings — Account Balance Forecast for Monarch Money</title>
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <title>Settings — Butterfly Effect</title>
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
   <script>(function(){var t=localStorage.getItem('theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
   <style>
@@ -427,7 +428,7 @@
 <header>
   <div>
     <h1>⚙ Settings</h1>
-    <div style="font-size:0.72rem;color:var(--text-secondary);margin-top:1px;">Account Balance Forecast for Monarch Money</div>
+    <div style="font-size:0.72rem;color:var(--text-secondary);margin-top:1px;">Butterfly Effect · v{{ version }}</div>
     <span id="aiTokenMeta" class="back-link" style="display:none;font-size:0.72rem;color:var(--text-secondary);margin-top:2px;font-weight:normal;"></span>
   </div>
   <div style="display:flex;gap:10px;align-items:center;">
@@ -447,7 +448,7 @@
 
 {% if setup_mode %}
 <div class="setup-banner">
-  <h2>Welcome to Balance Forecast — let's get you set up</h2>
+  <h2>Welcome to Butterfly Effect — let's get you set up</h2>
   <ol>
     <li><strong>Monarch Connection</strong> — click "Connect to Monarch", log in when prompted, then select your primary checking account</li>
     <li><strong>AI Insights</strong> — optional: add an API key to enable AI analysis</li>
@@ -893,6 +894,19 @@
 </main>
 
 <script>
+// ── CSRF: attach X-CSRF-Token header to every API fetch automatically ────────
+(function() {
+  var _csrfToken = (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
+  var _origFetch = window.fetch;
+  window.fetch = function(url, opts) {
+    opts = opts || {};
+    if (typeof url === 'string' && url.startsWith('/api')) {
+      opts.headers = Object.assign({}, opts.headers, { 'X-CSRF-Token': _csrfToken });
+    }
+    return _origFetch.call(this, url, opts);
+  };
+})();
+
 // True when a Monarch account has been selected — drives button label (Connect vs Refresh)
 var _monarchAccountSelected = {{ setup_status.account_ok | tojson }};
 
@@ -1417,7 +1431,7 @@ function restartServer() {
 // ── Factory Reset ─────────────────────────────────────────────────────────────
 function factoryReset() {
   if (!confirm(
-    'Reset Balance Forecast to factory defaults?\n\n' +
+    'Reset Butterfly Effect to factory defaults?\n\n' +
     'This will permanently delete:\n' +
     '  \u2022 Monarch session data\n' +
     '  \u2022 All settings (config.yaml)\n' +
