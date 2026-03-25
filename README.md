@@ -28,7 +28,7 @@ Key capabilities:
 
 The main dashboard uses a fixed two-column layout. The left pane always shows your balance graph, stat cards, and transfer recommendations. The right pane scrolls independently through your upcoming transaction schedule.
 
-![Balance Forecast dashboard in light mode, showing two-column layout with forecast chart on the left and scrollable transaction schedule on the right](docs/screenshots/dashboard-light.png)
+<img src="docs/screenshots/dashboard-light.png" width="640" alt="Balance Forecast dashboard in light mode, showing two-column layout with forecast chart on the left and scrollable transaction schedule on the right">
 
 ---
 
@@ -42,7 +42,7 @@ Drag the handle between the two panes to resize them. The left column stays with
 
 Hover over any date on the balance graph to see that day's transactions.
 
-![Graph node popup showing transactions for the given date](docs/screenshots/dashboard-tx-popup.png)
+<img src="docs/screenshots/dashboard-tx-popup.png" width="640" alt="Graph node popup showing transactions for the given date">
 
 ---
 
@@ -50,7 +50,7 @@ Hover over any date on the balance graph to see that day's transactions.
 
 The right pane shows a scrollable agenda of upcoming dates with clickable transactions showing merchants and amounts. The last-refreshed timestamp appears in this pane's header.
 
-![Transaction schedule pane with date rows and clickable payment pills](docs/screenshots/dashboard-tx-calendar.png)
+<img src="docs/screenshots/dashboard-tx-calendar.png" width="640" alt="Transaction schedule pane with date rows and clickable payment pills">
 
 ---
 
@@ -58,7 +58,7 @@ The right pane shows a scrollable agenda of upcoming dates with clickable transa
 
 Click any transaction pill to open the editing panel. Change single amounts, change recurring amounts, suppress the series, or skip a single occurrence. The forecast updates instantly when you save.
 
-![Inline editing panel showing amount, skip, and suppress options](docs/screenshots/dashboard-tx-edit.png)
+<img src="docs/screenshots/dashboard-tx-edit.png" width="640" alt="Inline editing panel showing amount, skip, and suppress options">
 
 ---
 
@@ -66,7 +66,7 @@ Click any transaction pill to open the editing panel. Change single amounts, cha
 
 Click **✦ AI Insights** in the header to slide the AI panel in from the right. It overlays the transaction schedule without shifting the graph. Transfer recommendations and seasonal spending observations appear here. The Corrections panel below lets you feed the AI specific facts about your finances to fix its accuracy.
 
-![AI Insights drawer open, showing risk flags, seasonal notes, and the Corrections panel](docs/screenshots/dashboard-txrecs-ai-insights.png)
+<img src="docs/screenshots/dashboard-txrecs-ai-insights.png" width="640" alt="AI Insights drawer open, showing risk flags, seasonal notes, and the Corrections panel">
 
 ---
 
@@ -74,7 +74,7 @@ Click **✦ AI Insights** in the header to slide the AI panel in from the right.
 
 Add one-off transfers or expenses to model their impact on the forecast without modifying your real data.
 
-![Scenario modeling panel with example transfer entry](docs/screenshots/dashboard-scenario-modeling.png)
+<img src="docs/screenshots/dashboard-scenario-modeling.png" width="640" alt="Scenario modeling panel with example transfer entry">
 
 ---
 
@@ -82,7 +82,7 @@ Add one-off transfers or expenses to model their impact on the forecast without 
 
 Switch between light and dark mode from Settings or the moon icon in the header.
 
-![Balance Forecast dashboard in dark mode](docs/screenshots/dashboard-dark.png)
+<img src="docs/screenshots/dashboard-dark.png" width="640" alt="Balance Forecast dashboard in dark mode">
 
 ---
 
@@ -90,7 +90,7 @@ Switch between light and dark mode from Settings or the moon icon in the header.
 
 On first launch the app opens directly to the Settings page, with the Monarch Connection section highlighted.
 
-![Settings page on first run showing Monarch Connection section highlighted with a blue border](docs/screenshots/settings-firstrun-setup.png)
+<img src="docs/screenshots/settings-firstrun-setup.png" width="640" alt="Settings page on first run showing Monarch Connection section highlighted with a blue border">
 
 ---
 
@@ -98,9 +98,9 @@ On first launch the app opens directly to the Settings page, with the Monarch Co
 
 Connect to Monarch via a temporary Chrome window. Your credentials go directly to Monarch — they are never seen or stored by this app.
 
-![Settings Monarch Connection section showing Connect button and account dropdown](docs/screenshots/settings-monarch-connection.png)
+<img src="docs/screenshots/settings-monarch-connection.png" width="640" alt="Settings Monarch Connection section showing Connect button and account dropdown">
 
-![Browser window opens with Monarch login](docs/screenshots/settings-monarch-fetching.png)
+<img src="docs/screenshots/settings-monarch-fetching.png" width="640" alt="Browser window opens with Monarch login">
 
 ---
 
@@ -108,7 +108,7 @@ Connect to Monarch via a temporary Chrome window. Your credentials go directly t
 
 Configure your AI provider, model, and API key here. The **Last generated** line shows the timestamp, token counts, and cost of the most recent analysis. You can kick off a new analysis directly from this page and watch the live progress log.
 
-![AI Insights settings panel showing provider selection, model, API key field, and Run AI Analysis button](docs/screenshots/settings-ai.png)
+<img src="docs/screenshots/settings-ai.png" width="640" alt="AI Insights settings panel showing provider selection, model, API key field, and Run AI Analysis button">
 
 ---
 
