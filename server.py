@@ -61,7 +61,12 @@ from storage import (
     _write_corrections,
 )
 
-app = Flask(__name__)
+# When bundled with PyInstaller, resource files live under sys._MEIPASS.
+# In normal execution __file__ resolves correctly; this handles both cases.
+BASE_DIR = Path(getattr(sys, '_MEIPASS', Path(__file__).parent))
+
+app = Flask(__name__, template_folder=str(BASE_DIR / 'templates'),
+            static_folder=str(BASE_DIR / 'static'))
 app.config['SECRET_KEY'] = secrets.token_hex(32)   # fresh each restart (no persistent sessions)
 
 # ── CSRF token — generated once per server process ─────────────────────────
@@ -117,7 +122,7 @@ _harden_file_permissions()
 
 
 # ── App version (read once from VERSION file) ───────────────────────────────
-_VERSION_FILE = Path(__file__).parent / "VERSION"
+_VERSION_FILE = BASE_DIR / "VERSION"
 _APP_VERSION  = _VERSION_FILE.read_text().strip() if _VERSION_FILE.exists() else "dev"
 
 

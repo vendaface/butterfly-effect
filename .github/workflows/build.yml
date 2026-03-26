@@ -1,0 +1,170 @@
+name: Build release binaries
+
+# Triggered on version tags (e.g. v0.9.2) pushed to the repo.
+# Produces:
+#   - macOS: Butterfly Effect-<version>-mac.dmg
+#   - Linux: butterfly-effect-<version>-linux-x86_64.AppImage
+# Both are attached to the GitHub Release created by this workflow.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write   # needed to create GitHub Releases and upload assets
+
+jobs:
+  # ── macOS build ────────────────────────────────────────────────────────────
+  build-mac:
+    name: Build macOS .dmg
+    runs-on: macos-14          # Apple Silicon runner
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller
+
+      - name: Build with PyInstaller
+        run: pyinstaller butterfly-effect.spec
+
+      - name: Import signing certificate
+        if: ${{ secrets.APPLE_CERT_BASE64 != '' }}
+        env:
+          APPLE_CERT_BASE64: ${{ secrets.APPLE_CERT_BASE64 }}
+          APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+        run: |
+          echo "$APPLE_CERT_BASE64" | base64 --decode > cert.p12
+          security create-keychain -p "temp" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "temp" build.keychain
+          security import cert.p12 -k build.keychain -P "$APPLE_CERT_PASSWORD" \
+            -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s \
+            -k "temp" build.keychain
+          rm cert.p12
+
+      - name: Sign the .app bundle
+        if: ${{ secrets.APPLE_SIGNING_IDENTITY != '' }}
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          codesign --deep --force --verbose \
+            --sign "$APPLE_SIGNING_IDENTITY" \
+            --options runtime \
+            "dist/Butterfly Effect.app"
+
+      - name: Create .dmg
+        run: |
+          VERSION=$(cat VERSION)
+          hdiutil create -volname "Butterfly Effect" \
+            -srcfolder "dist/Butterfly Effect.app" \
+            -ov -format UDZO \
+            "dist/Butterfly Effect-${VERSION}-mac.dmg"
+
+      - name: Notarize .dmg
+        if: ${{ secrets.APPLE_ID != '' }}
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+        run: |
+          VERSION=$(cat VERSION)
+          xcrun notarytool submit \
+            "dist/Butterfly Effect-${VERSION}-mac.dmg" \
+            --apple-id "$APPLE_ID" \
+            --team-id "$APPLE_TEAM_ID" \
+            --password "$APPLE_APP_PASSWORD" \
+            --wait
+          xcrun stapler staple "dist/Butterfly Effect-${VERSION}-mac.dmg"
+
+      - name: Upload .dmg to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/Butterfly Effect-*-mac.dmg
+          generate_release_notes: true
+
+  # ── Linux build ────────────────────────────────────────────────────────────
+  build-linux:
+    name: Build Linux AppImage
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            libglib2.0-0 libnss3 libatk1.0-0 libatk-bridge2.0-0 \
+            libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 \
+            libxrandr2 libgbm1 libasound2 \
+            fuse libfuse2 wget
+
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller
+
+      - name: Build with PyInstaller
+        run: pyinstaller butterfly-effect.spec
+
+      - name: Download appimagetool
+        run: |
+          wget -q \
+            https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage \
+            -O appimagetool
+          chmod +x appimagetool
+
+      - name: Create AppDir structure
+        run: |
+          VERSION=$(cat VERSION)
+          mkdir -p AppDir/usr/bin
+          cp -r dist/butterfly-effect/* AppDir/usr/bin/
+          # AppImage desktop entry
+          cat > AppDir/butterfly-effect.desktop <<EOF
+          [Desktop Entry]
+          Name=Butterfly Effect
+          Exec=butterfly-effect
+          Icon=butterfly-effect
+          Type=Application
+          Categories=Finance;
+          EOF
+          # Icon placeholder (replace with real .png when available)
+          cp static/favicon.svg AppDir/butterfly-effect.svg || true
+          # AppRun wrapper
+          cat > AppDir/AppRun <<'APPRUN'
+          #!/bin/sh
+          SELF=$(readlink -f "$0")
+          HERE=$(dirname "$SELF")
+          export PATH="$HERE/usr/bin:$PATH"
+          exec "$HERE/usr/bin/butterfly-effect" "$@"
+          APPRUN
+          chmod +x AppDir/AppRun
+
+      - name: Build AppImage
+        run: |
+          VERSION=$(cat VERSION)
+          ARCH=x86_64 ./appimagetool AppDir \
+            "butterfly-effect-${VERSION}-linux-x86_64.AppImage"
+
+      - name: Upload AppImage to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: butterfly-effect-*-linux-x86_64.AppImage
+          generate_release_notes: true
