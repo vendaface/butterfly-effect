@@ -58,14 +58,33 @@ fi
 # ── Open startup page (Python confirmed present) ──────────────────────────────
 _open_startup
 
-# ── Bootstrap config files on first run ──────────────────────────────────────
-if [ ! -f config.yaml ]; then
-  echo "First run: creating config.yaml from example..."
-  cp config.yaml.example config.yaml
+# ── Application data directory ────────────────────────────────────────────────
+if [ "$OS" = "darwin" ]; then
+  APP_DATA="$HOME/Library/Application Support/Butterfly Effect"
+else
+  APP_DATA="${XDG_DATA_HOME:-$HOME/.local/share}/butterfly-effect"
 fi
-if [ ! -f .env ]; then
+mkdir -p "$APP_DATA"
+
+# ── One-time migration: move existing data files to Application Support ───────
+for f in config.yaml .env browser_state.json insights.json user_context.md \
+          payment_overrides.json payment_skips.json payment_monthly_amounts.json \
+          payment_day_overrides.json scenarios.json monarch_accounts_cache.json \
+          dismissed_suggestions.json; do
+  if [ -f "$SCRIPT_DIR/$f" ] && [ ! -f "$APP_DATA/$f" ]; then
+    mv "$SCRIPT_DIR/$f" "$APP_DATA/$f"
+    echo "Migrated $f to Application Support"
+  fi
+done
+
+# ── Bootstrap config files on first run ──────────────────────────────────────
+if [ ! -f "$APP_DATA/config.yaml" ]; then
+  echo "First run: creating config.yaml..."
+  cp "$SCRIPT_DIR/config.yaml.example" "$APP_DATA/config.yaml"
+fi
+if [ ! -f "$APP_DATA/.env" ]; then
   echo "First run: creating .env (credentials file)..."
-  touch .env
+  touch "$APP_DATA/.env"
 fi
 
 # ── Virtual environment ───────────────────────────────────────────────────────

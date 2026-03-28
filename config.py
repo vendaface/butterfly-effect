@@ -17,14 +17,16 @@ from dotenv import load_dotenv
 
 from storage import _atomic_write
 
-load_dotenv()
-
 # ── Path constants ─────────────────────────────────────────────────────────────
 
-_BASE = Path(__file__).parent
+from paths import APP_DATA_DIR   # noqa: E402 — after stdlib imports
+
+_BASE = APP_DATA_DIR
 
 _CONFIG_PATH = _BASE / "config.yaml"
 _ENV_PATH    = _BASE / ".env"
+
+load_dotenv(_ENV_PATH)
 
 # Keys that must never be sent to the browser as plaintext
 _SENSITIVE_ENV_KEYS = {
