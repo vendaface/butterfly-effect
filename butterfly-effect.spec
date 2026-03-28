@@ -10,22 +10,24 @@
 
 import sys
 from pathlib import Path
-from PyInstaller.utils.hooks import collect_all, collect_data_files
+from PyInstaller.utils.hooks import collect_all
 
 block_cipher = None
 SRC = Path(SPECPATH)   # directory containing this .spec file
 
-# collect_all() gathers every submodule, data file, and binary for a package.
-# Use it for packages that have complex submodule structures that PyInstaller
-# misses with static import analysis alone.
-flask_datas,      flask_bins,      flask_hidden      = collect_all('flask')
-werkzeug_datas,   werkzeug_bins,   werkzeug_hidden   = collect_all('werkzeug')
+# Flask and Werkzeug are discovered automatically through server.py's imports.
+# collect_all() for those packages registers submodules in the wrong order and
+# causes flask.__init__'s circular `from . import json` to fail. Don't use it.
+#
+# Playwright is NOT found through static analysis (monarch_client.py uses async
+# APIs that PyInstaller can't trace), so collect_all is correct here.
 playwright_datas, playwright_bins, playwright_hidden = collect_all('playwright')
+webview_datas,    webview_bins,    webview_hidden    = collect_all('webview')
 
 a = Analysis(
     [str(SRC / 'main.py')],
     pathex=[str(SRC)],
-    binaries=[*flask_bins, *werkzeug_bins, *playwright_bins],
+    binaries=[*playwright_bins, *webview_bins],
     datas=[
         # Web UI
         (str(SRC / 'templates'),        'templates'),
@@ -34,15 +36,13 @@ a = Analysis(
         # Config example & version
         (str(SRC / 'config.yaml.example'), '.'),
         (str(SRC / 'VERSION'),          '.'),
-        *flask_datas,
-        *werkzeug_datas,
         *playwright_datas,
+        *webview_datas,
     ],
     hiddenimports=[
-        *flask_hidden,
-        *werkzeug_hidden,
         *playwright_hidden,
-        'flask.json',   # explicit — flask.__init__ imports this at line 5
+        *webview_hidden,
+        'webview.platforms.cocoa',   # macOS platform — not auto-detected
         # AI providers
         'anthropic',
         'openai',
@@ -65,7 +65,7 @@ a = Analysis(
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,
-    noarchive=False,
+    noarchive=True,   # store modules as files, not zip — fixes Flask relative imports
 )
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)

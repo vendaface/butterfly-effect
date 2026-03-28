@@ -3,6 +3,8 @@ Balance Forecast — local Flask web app.
 Run via: python server.py  (or ./run.sh)
 """
 
+import contextlib
+import io
 import json
 import os
 import re
@@ -15,6 +17,7 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from flask import Flask, jsonify, redirect, render_template, request, url_for, Response
+from paths import APP_DATA_DIR
 
 from config import (
     _CONFIG_PATH,
@@ -106,9 +109,9 @@ def _harden_file_permissions() -> None:
     sensitive = [
         _ENV_PATH,
         _CONFIG_PATH,
-        Path(__file__).parent / "browser_state.json",
-        Path(__file__).parent / "insights.json",
-        Path(__file__).parent / "user_context.md",
+        APP_DATA_DIR / "browser_state.json",
+        APP_DATA_DIR / "insights.json",
+        APP_DATA_DIR / "user_context.md",
     ]
     for p in sensitive:
         try:
@@ -826,28 +829,43 @@ def api_run_ai_analysis():
     def _run():
         global _ai_running, _ai_run_log
         try:
-            proc = subprocess.Popen(
-                [sys.executable, "-u", str(Path(__file__).parent / "ai_daily.py")],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                bufsize=1,   # line-buffered so output arrives incrementally
-                cwd=str(Path(__file__).parent),
-            )
-            # Kill the process after 15 minutes if it hasn't finished
-            def _kill_on_timeout():
-                _ai_run_log.append("⚠ Analysis timed out after 15 minutes and was stopped.")
-                proc.kill()
-            timer = threading.Timer(900, _kill_on_timeout)
-            timer.start()
-            try:
-                for line in proc.stdout:          # reads one line at a time as they arrive
-                    line = line.rstrip()
-                    if line:
-                        _ai_run_log.append(line)
-                proc.wait()
-            finally:
-                timer.cancel()
+            if getattr(sys, 'frozen', False):
+                # In a PyInstaller bundle sys.executable is the app binary —
+                # spawning it would launch a new app window. Run ai_daily
+                # in-process instead, capturing stdout line-by-line.
+                class _LineCapture(io.TextIOBase):
+                    def write(self, text):
+                        for line in text.splitlines():
+                            if line.strip():
+                                _ai_run_log.append(line)
+                        return len(text)
+                import ai_daily as _ai_daily
+                with contextlib.redirect_stdout(_LineCapture()), \
+                     contextlib.redirect_stderr(_LineCapture()):
+                    _ai_daily.run()
+            else:
+                proc = subprocess.Popen(
+                    [sys.executable, "-u", str(Path(__file__).parent / "ai_daily.py")],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    bufsize=1,   # line-buffered so output arrives incrementally
+                    cwd=str(Path(__file__).parent),
+                )
+                # Kill the process after 15 minutes if it hasn't finished
+                def _kill_on_timeout():
+                    _ai_run_log.append("⚠ Analysis timed out after 15 minutes and was stopped.")
+                    proc.kill()
+                timer = threading.Timer(900, _kill_on_timeout)
+                timer.start()
+                try:
+                    for line in proc.stdout:
+                        line = line.rstrip()
+                        if line:
+                            _ai_run_log.append(line)
+                    proc.wait()
+                finally:
+                    timer.cancel()
         finally:
             _ai_running = False
             _clear_forecast_cache()   # recompute forecast to pick up new AI predictions
