@@ -3,12 +3,11 @@ main.py — entry point for the PyInstaller-bundled Butterfly Effect app.
 
 When running from source, use `python server.py` or `./run.sh` instead.
 This wrapper:
-  1. Locates startup.html (works both bundled and from source)
-  2. Installs the Playwright Chromium browser on first run if missing
-  3. Writes a temp copy of startup.html with the server port injected
-  4. Opens it in the user's default browser
-  5. Starts the Flask server in a background thread
-  6. Keeps the process alive until the user quits (Ctrl-C or window close)
+  1. Starts the Flask server immediately in the main thread
+  2. Opens startup.html in the browser after a short delay (polls /_ping,
+     auto-redirects to the dashboard once Flask is ready)
+  3. Downloads the Playwright Chromium browser in the background on first
+     run — doesn't block startup; ready long before the user needs it
 """
 
 import os
@@ -76,6 +75,18 @@ def _open_startup(port: int):
 
 def _run_flask(port: int):
     """Start Flask in this thread (blocking)."""
+    import socket
+    # Check port availability before starting Flask so we can show a clear
+    # error instead of letting Flask print a cryptic message and crash-loop.
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        if s.connect_ex(('127.0.0.1', port)) == 0:
+            print(
+                f'\nERROR: Port {port} is already in use.\n'
+                f'The app may already be running at http://localhost:{port}\n'
+                f'If not, run:  lsof -ti :{port} | xargs kill -9\n',
+                file=sys.stderr,
+            )
+            sys.exit(1)
     # Import here so PyInstaller can trace the dependency
     from server import app
     from config import _load_config
@@ -89,17 +100,25 @@ def main():
     # Point Playwright at our dedicated cache directory
     os.environ['PLAYWRIGHT_BROWSERS_PATH'] = str(PLAYWRIGHT_CACHE)
 
-    _ensure_playwright_browser()
-
     from config import _load_config
     config = _load_config()
     port = config.get('app', {}).get('port', 5002)
 
-    # Open the startup page in a background thread so the browser opens
-    # while Flask is starting up in the main thread.
-    startup_thread = threading.Thread(target=_open_startup, args=(port,), daemon=True)
+    # Download Chromium in the background — don't block Flask startup.
+    # The user won't need it until they click "Connect to Monarch", by
+    # which point the ~150 MB download will almost certainly be done.
+    browser_thread = threading.Thread(target=_ensure_playwright_browser, daemon=True)
+    browser_thread.start()
+
+    # Open the startup page after a short pause so Flask has time to bind.
+    # startup.html polls /_ping and auto-redirects once the server is up.
+    def _delayed_open():
+        time.sleep(0.75)
+        _open_startup(port)
+    startup_thread = threading.Thread(target=_delayed_open, daemon=True)
     startup_thread.start()
 
+    # Run Flask in the main thread (blocking — keeps the process alive).
     _run_flask(port)
 
 
