@@ -32,7 +32,6 @@ a = Analysis(
         # Web UI
         (str(SRC / 'templates'),        'templates'),
         (str(SRC / 'static'),           'static'),
-        (str(SRC / 'startup.html'),     '.'),
         # Config example & version
         (str(SRC / 'config.yaml.example'), '.'),
         (str(SRC / 'VERSION'),          '.'),
