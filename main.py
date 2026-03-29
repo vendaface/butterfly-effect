@@ -108,7 +108,7 @@ _LOADING_HTML = """<!DOCTYPE html>
     color: #e6edf3;
   }
   .wrap { text-align: center; }
-  .emoji { font-size: 64px; margin-bottom: 24px; animation: flutter 2s ease-in-out infinite; }
+  .icon { width: 72px; height: 72px; margin: 0 auto 24px; animation: flutter 2s ease-in-out infinite; }
   @keyframes flutter {
     0%, 100% { transform: translateY(0) rotate(-5deg); }
     50%       { transform: translateY(-12px) rotate(5deg); }
@@ -130,7 +130,35 @@ _LOADING_HTML = """<!DOCTYPE html>
 </head>
 <body>
   <div class="wrap">
-    <div class="emoji">🦋</div>
+    <svg class="icon" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs>
+        <linearGradient id="lh-ul" x1="50" y1="54" x2="5"  y2="24" gradientUnits="userSpaceOnUse">
+          <stop offset="0%"   stop-color="#1a6fff"/>
+          <stop offset="100%" stop-color="#5ee7d4"/>
+        </linearGradient>
+        <linearGradient id="lh-ur" x1="50" y1="54" x2="95" y2="24" gradientUnits="userSpaceOnUse">
+          <stop offset="0%"   stop-color="#1a6fff"/>
+          <stop offset="100%" stop-color="#30d158"/>
+        </linearGradient>
+        <linearGradient id="lh-ll" x1="50" y1="60" x2="22" y2="88" gradientUnits="userSpaceOnUse">
+          <stop offset="0%"   stop-color="#005ec0"/>
+          <stop offset="100%" stop-color="#34c759"/>
+        </linearGradient>
+        <linearGradient id="lh-lr" x1="50" y1="60" x2="78" y2="88" gradientUnits="userSpaceOnUse">
+          <stop offset="0%"   stop-color="#005ec0"/>
+          <stop offset="100%" stop-color="#5ee7d4"/>
+        </linearGradient>
+      </defs>
+      <path d="M 50,48 C 40,25 12,12 5,26 C 1,40 14,56 50,60 Z"   fill="url(#lh-ul)"/>
+      <path d="M 50,48 C 60,25 88,12 95,26 C 99,40 86,56 50,60 Z"  fill="url(#lh-ur)"/>
+      <path d="M 50,60 C 38,64 20,72 22,84 C 24,94 40,92 50,66 Z"  fill="url(#lh-ll)"/>
+      <path d="M 50,60 C 62,64 80,72 78,84 C 76,94 60,92 50,66 Z"  fill="url(#lh-lr)"/>
+      <ellipse cx="50" cy="54" rx="3" ry="22" fill="#0d1229"/>
+      <path d="M 49,32 Q 38,17 33,9" stroke="#0d1229" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+      <circle cx="33" cy="9" r="1.8" fill="#1a6fff"/>
+      <path d="M 51,32 Q 62,17 67,9" stroke="#0d1229" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+      <circle cx="67" cy="9" r="1.8" fill="#30d158"/>
+    </svg>
     <h1>Butterfly Effect</h1>
     <p>Loading your forecast<span class="dots"></span></p>
   </div>

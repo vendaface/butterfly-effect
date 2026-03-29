@@ -84,7 +84,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=str(SRC / 'static' / 'favicon.svg') if sys.platform == 'darwin' else None,
+    icon=str(SRC / 'static' / 'icon.icns') if sys.platform == 'darwin' else None,
 )
 
 coll = COLLECT(
@@ -103,7 +103,7 @@ if sys.platform == 'darwin':
     app = BUNDLE(
         coll,
         name='Butterfly Effect.app',
-        icon=None,   # replace with an .icns file once one exists
+        icon=str(SRC / 'static' / 'icon.icns'),
         bundle_identifier='com.vendaface.butterfly-effect',
         info_plist={
             'CFBundleShortVersionString': Path(SPECPATH + '/VERSION').read_text().strip(),
