@@ -254,6 +254,15 @@
             + '<code class="cmd">sudo pacman -S python</code>';
         }
       },
+      novenv: {
+        title: '\u26a0\ufe0f Python venv module is missing',
+        body: function (os) {
+          return ''
+            + '<p>Python is installed but the <code>venv</code> module is missing. On Ubuntu, Debian, and Linux Mint it is a separate package:</p>'
+            + '<code class="cmd">sudo apt install python3-venv</code>'
+            + '<p>Then close this window and run <code>./run.sh</code> again.</p>';
+        }
+      },
       pipfail: {
         title: '\u26a0\ufe0f Dependency installation failed',
         body: function (os) {

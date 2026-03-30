@@ -51,9 +51,50 @@ done
 
 if [ -z "$PYTHON" ]; then
   _open_startup "e=nopython&os=$OS"
-  echo "Error: Python 3.11+ required. See the browser window for install instructions."
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "  Python 3.11 or higher is required."
+  echo ""
+  if [ "$OS" = "darwin" ]; then
+    echo "  Install via Homebrew:"
+    echo "    brew install python@3.12"
+    echo ""
+    echo "  Or download from: https://python.org/downloads"
+  else
+    echo "  Ubuntu / Debian (including Linux Mint):"
+    echo "    sudo apt update && sudo apt install python3.12 python3.12-venv"
+    echo ""
+    echo "  Fedora / RHEL:"
+    echo "    sudo dnf install python3.12"
+    echo ""
+    echo "  Arch:"
+    echo "    sudo pacman -S python"
+  fi
+  echo ""
+  echo "  After installing, run ./run.sh again."
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo ""
   exit 1
 fi
+
+# On Debian/Ubuntu-based systems, python3-venv is a separate package.
+# Check for it now so we can show a helpful error rather than a cryptic crash.
+if [ "$OS" = "linux" ] && ! "$PYTHON" -m venv --without-pip /tmp/butterfly-venv-check &>/dev/null; then
+  rm -rf /tmp/butterfly-venv-check 2>/dev/null || true
+  _open_startup "e=novenv&os=$OS"
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "  Python venv module is missing."
+  echo "  Install it with:"
+  echo ""
+  echo "    sudo apt install python3-venv"
+  echo ""
+  echo "  Then run ./run.sh again."
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo ""
+  exit 1
+fi
+rm -rf /tmp/butterfly-venv-check 2>/dev/null || true
 
 # ── Open startup page (Python confirmed present) ──────────────────────────────
 _open_startup
