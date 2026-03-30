@@ -6,19 +6,30 @@ A self-hosted personal finance dashboard that pulls your **Monarch Money** accou
 
 ---
 
+## Disclaimer & legal notice
+
+**This is an unofficial, community-built tool. It is not affiliated with, endorsed by, sponsored by, or in any way connected to Monarch Money, Inc.**
+
+This tool automates a real Chromium browser session using your own Monarch credentials via [Playwright](https://playwright.dev/). It intercepts the same GraphQL network calls that the Monarch web application makes — it makes no additional or undocumented API requests beyond what your browser would make normally.
+
+**This may violate Monarch's Terms of Service.** Use it for personal use only, at your own discretion, and at your own risk. The author makes no guarantees about continued compatibility. If Monarch updates their web app, this tool may stop working without notice.
+
+**Support for this tool comes from the individual who created it, not from Monarch Money.** Do not contact Monarch Money's support team with questions about this tool.
+
+---
+
 ## What this tool does
 
-Butterfly Effect reads your transaction history and recurring payment schedule from Monarch Money and projects your checking account balance forward in time — by default 45 days, configurable to any horizon you like. It highlights upcoming low-balance windows, lets you model one-off transfers or expenses, and can optionally generate AI-powered narrative insights about spending patterns and upcoming bills.
+Butterfly Effect uses data from Monarch Money, recurring transactions, and future transactions you enter to project your account balance forward in time — by default 45 days, configurable to any horizon you like. It highlights upcoming low-balance windows, lets you model one-off transfers or expenses, and can optionally generate AI-powered narrative insights about spending patterns and upcoming bills.
 
 Key capabilities:
 
-- **Forecast chart** — rolling balance projection based on your Monarch recurring schedule
-- **Variable Payments** — override the learned amount for credit cards or irregular bills
-- **Billing Day Overrides** — correct the day-of-month a recurring payment is expected
-- **Scenario Modeling** — add hypothetical transfers or expenses to see their impact
-- **AI Insights** (optional) — seasonal patterns, predicted expenses, transfer recommendations
-- **Calendar Integration** (optional) — overlay external Calendar events on the forecast chart
-- **Dark mode**
+- **Forecast chart** — rolling account balance projection based on your Monarch recurring schedule
+- **Scenario Modeling** — enter upcoming real or potential income or expenses, one-time or recurring, to more accurately model your future balances
+- **Transaction Overrides** — correct the amount, dates, or frequency of recurring transactions, or skip/delete them altogether
+- **AI Insights** (optional) — Fine-tune predictions with seasonal expense patterns, savings or transfer recommendations, and more based on your Monarch goals and existing forecast scenario
+- **Calendar Integration** (optional) — use public calendars to supplement Monarch's recurring or one-time transactions
+- **Dark mode** - prevent safety squints and preserve your retinal health
 
 ---
 
@@ -26,15 +37,11 @@ Key capabilities:
 
 ### Balance forecast — two-column layout
 
-The main dashboard uses a fixed two-column layout. The left pane always shows your balance graph, stat cards, and transfer recommendations. The right pane scrolls independently through your upcoming transaction schedule.
+The main dashboard uses an adjustable, two-column layout to maximize data visibility. The left pane always shows your balance graph, stat cards, and transfer recommendations. The right pane scrolls independently through your upcoming transaction schedule. Drag the handle between the two panes to resize them as needed.
+
+The optional AI Insights can be shown or hidden using a slide-in panel.
 
 <img src="docs/screenshots/dashboard-light.png" width="640" alt="Balance Forecast dashboard in light mode, showing two-column layout with forecast chart on the left and scrollable transaction schedule on the right">
-
----
-
-### Resizable columns
-
-Drag the handle between the two panes to resize them. The left column stays within a minimum and maximum width to keep both panes usable.
 
 ---
 
@@ -48,7 +55,7 @@ Hover over any date on the balance graph to see that day's transactions.
 
 ### Transaction schedule
 
-The right pane shows a scrollable agenda of upcoming dates with clickable transactions showing merchants and amounts. The last-refreshed timestamp appears in this pane's header.
+The right pane shows a scrollable agenda of upcoming dates with clickable transactions showing merchants and amounts. The panel header shows the last-refreshed timestamp so you know how current the data is.
 
 <img src="docs/screenshots/dashboard-tx-calendar.png" width="640" alt="Transaction schedule pane with date rows and clickable payment pills">
 
@@ -56,13 +63,13 @@ The right pane shows a scrollable agenda of upcoming dates with clickable transa
 
 ### Editing a transaction inline
 
-Click any transaction pill to open the editing panel. Change single amounts, change recurring amounts, suppress the series, or skip a single occurrence. The forecast updates instantly when you save.
+Click any transaction in the schedule to edit it's data. Change dates, amounts, suppress the series entirely, or skip a single occurrence. The forecast updates instantly when you save.
 
 <img src="docs/screenshots/dashboard-tx-edit.png" width="640" alt="Inline editing panel showing amount, skip, and suppress options">
 
 ---
 
-### AI Insights drawer
+### AI Insights drawer (optional)
 
 Click the **AI** tab on the right edge of the window to slide the panel in from the right. It overlays the transaction schedule without shifting the graph. Transfer recommendations and seasonal spending observations appear here. The Corrections panel below lets you feed the AI specific facts about your finances to fix its accuracy.
 
@@ -72,7 +79,7 @@ Click the **AI** tab on the right edge of the window to slide the panel in from 
 
 ### Scenario modeling
 
-Add one-off transfers or expenses to model their impact on the forecast without modifying your real data.
+Add transfers or expenses to model their impact on the forecast without modifying your real data. Modeling transations can be one-time or recurring, and may be removed at any time.
 
 <img src="docs/screenshots/dashboard-scenario-modeling.png" width="640" alt="Scenario modeling panel with example transfer entry">
 
@@ -80,7 +87,7 @@ Add one-off transfers or expenses to model their impact on the forecast without 
 
 ### Dark mode
 
-Switch between light and dark mode from Settings or the moon icon in the header.
+Switch between light and dark mode using the icon in the header. Avoid safety squints, crow's feet, and retinal burn-in.
 
 <img src="docs/screenshots/dashboard-dark.png" width="640" alt="Balance Forecast dashboard in dark mode">
 
@@ -88,7 +95,7 @@ Switch between light and dark mode from Settings or the moon icon in the header.
 
 ### Settings — first run
 
-On first launch the app opens directly to the Settings page, with the Monarch Connection section highlighted.
+On first launch the user just needs to double-click one file in the folder and the app opens in the default browser, first with a startup splash page and then to the Settings page with the Monarch Connection section highlighted. (If no Python installation is detected the startup screen will provide instructions on how to install before continuing.
 
 <img src="docs/screenshots/settings-firstrun-setup.png" width="640" alt="Settings page on first run showing Monarch Connection section highlighted with a blue border">
 
@@ -106,21 +113,9 @@ Connect to Monarch via a temporary Chrome window. Your credentials go directly t
 
 ### Settings — AI Insights
 
-Configure your AI provider, model, and API key here. The **Last generated** line shows the timestamp, token counts, and cost of the most recent analysis. You can kick off a new analysis directly from this page and watch the live progress log.
+Configure your AI provider, model, and API key here. The **Last generated** line shows the timestamp, token counts, and cost of the most recent analysis. You can kick off a new analysis directly from this page and watch the live progress log, or update it from the dashboard. The AI Insights button indicates the freshness of your last update, which is a customizable number of hours.
 
 <img src="docs/screenshots/settings-ai.png" width="640" alt="AI Insights settings panel showing provider selection, model, API key field, and Run AI Analysis button">
-
----
-
-## Disclaimer & legal notice
-
-**This is an unofficial, community-built tool. It is not affiliated with, endorsed by, sponsored by, or in any way connected to Monarch Money, Inc.**
-
-This tool automates a real Chromium browser session using your own Monarch credentials via [Playwright](https://playwright.dev/). It intercepts the same GraphQL network calls that the Monarch web application makes — it makes no additional or undocumented API requests beyond what your browser would make normally.
-
-**This may violate Monarch's Terms of Service.** Use it for personal use only, at your own discretion, and at your own risk. The author makes no guarantees about continued compatibility. If Monarch updates their web app, this tool may stop working without notice.
-
-**Support for this tool comes from the individual who created it, not from Monarch Money.** Do not contact Monarch Money's support team with questions about this tool.
 
 ---
 
@@ -144,32 +139,32 @@ An API key from one of these providers (pick one). See [Setting up AI Insights](
 
 ### Step 1 — Download the app
 
-Click the **Code** button on this page and choose **Download ZIP**. Unzip it somewhere you'll remember, like your Documents folder. (Or if you're already fluent in git just fork the repo and have at it.)
+Click the **Code** button on this page and choose **Download ZIP**. Unzip it somewhere you'll remember on your local account, like your Documents folder. (If you're already fluent in git just fork the repo and have at it!)
 
-### Step 2 — Launch it
+### Step 2 — Launch the App
 
 **On Mac:**
-Double-click **`Start Balance Forecast.command`** in the folder. A startup page opens in your browser while the app initializes. On first run it will take a couple of minutes to set up — watch the terminal window for any dependency errors.
+Double-click **`Start Balance Forecast.command`** in the folder. A startup page opens in your browser while the app initializes. On first run it will take a couple of minutes to set up — the startup page will warn you if no Python installation is detected and direct you as to how to download it.
 
 > The first time you open it, macOS may warn you it's from an unidentified developer. Right-click the file → **Open** → **Open** to proceed. You only need to do this once.
 
 **On Linux:**
 Right-click **`run.sh`** in your file manager → **Run as Program** (the exact wording depends on your desktop). Or open a Terminal, navigate to the folder, and enter `./run.sh`.
 
-The launcher automatically:
+For both environments, the launcher automatically:
+- Opens a startup page in your browser,
 - Detects Python and shows a friendly error page if it's missing or too old
-- Sets up a Python virtual environment
-- Installs all required packages
-- Opens a startup page in your browser, then redirects to the app once it's ready
+- Sets up a Python virtual environment and installs all required packages
+- Redirects to the app's first-run setup once it's ready
 
 ### Step 3 — Connect to Monarch
 
-On first launch your browser opens directly to the **Settings** page. The **Monarch Connection** section (highlighted with a blue border) is the only required step:
+Once setup is complete the app will take you directly to the **Settings** page. The **Monarch Connection** section (highlighted with a blue border) is the only required step:
 
 1. Click **Connect to Monarch** — a Chrome browser window will open automatically. Log in to Monarch when prompted; the window closes on its own after a successful login (~30–60 seconds).
-2. Wait for your eligible Monarch accounts to populate, then select your **primary bill pay account** from the dropdown that appears. Click **Save Monarch Settings** to complete the setup.
+2. Wait a few moments for your Monarch accounts to populate, then select your **primary bill pay account** from the dropdown. Click **Save Monarch Settings** to complete the setup.
 
-Once these two steps are complete, the **Go to Dashboard →** button at the top of the page will turn green. Click it to pull transactions and open your forecast — this may take 30 seconds or so on first run.
+Once these two steps are complete, the **Go to Dashboard →** button at the top of the page will be enabled. Click it to pull transactions and open your forecast — this may take 30 seconds or so on first run.
 
 > Down further on the Settings page are **AI Insights** and **Forecast Settings**. These are both optional on first run and can always be customized later.
 
