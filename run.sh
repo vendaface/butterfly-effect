@@ -58,19 +58,37 @@ fi
 # ── Open startup page (Python confirmed present) ──────────────────────────────
 _open_startup
 
-# ── Bootstrap config files on first run ──────────────────────────────────────
-if [ ! -f config.yaml ]; then
-  echo "First run: creating config.yaml from example..."
-  cp config.yaml.example config.yaml
+# ── Application data directory ────────────────────────────────────────────────
+if [ "$OS" = "darwin" ]; then
+  APP_DATA="$HOME/Library/Application Support/Butterfly Effect"
+else
+  APP_DATA="${XDG_DATA_HOME:-$HOME/.local/share}/butterfly-effect"
 fi
-if [ ! -f .env ]; then
+mkdir -p "$APP_DATA"
+
+# ── One-time migration: move existing data files to Application Support ───────
+for f in config.yaml .env browser_state.json insights.json user_context.md \
+          payment_overrides.json payment_skips.json payment_monthly_amounts.json \
+          payment_day_overrides.json scenarios.json monarch_accounts_cache.json \
+          dismissed_suggestions.json; do
+  if [ -f "$SCRIPT_DIR/$f" ] && [ ! -f "$APP_DATA/$f" ]; then
+    mv "$SCRIPT_DIR/$f" "$APP_DATA/$f"
+    echo "Migrated $f to Application Support"
+  fi
+done
+
+# ── Bootstrap config files on first run ──────────────────────────────────────
+if [ ! -f "$APP_DATA/config.yaml" ]; then
+  echo "First run: creating config.yaml..."
+  cp "$SCRIPT_DIR/config.yaml.example" "$APP_DATA/config.yaml"
+fi
+if [ ! -f "$APP_DATA/.env" ]; then
   echo "First run: creating .env (credentials file)..."
-  touch .env
+  touch "$APP_DATA/.env"
 fi
 
 # ── Virtual environment ───────────────────────────────────────────────────────
-# Stored outside iCloud Drive to prevent macOS from evicting venv files.
-VENV="$HOME/.cache/butterfly-effect-venv"
+VENV="$SCRIPT_DIR/.venv"
 _venv_ok=true
 if [ ! -x "$VENV/bin/python" ]; then
   _venv_ok=false
@@ -100,9 +118,15 @@ fi
 echo " done."
 
 # ── Playwright browser ────────────────────────────────────────────────────────
-if ! python -c "from playwright.sync_api import sync_playwright; sync_playwright().__enter__().chromium.executable_path" &>/dev/null 2>&1; then
-  printf "Installing browser (first time only, may take a minute)"
-  playwright install chromium &>/dev/null &
+# Store Chromium in a dedicated cache dir (same path used by the bundled app)
+# so it survives venv rebuilds and isn't mixed with other Playwright projects.
+PLAYWRIGHT_CACHE="$HOME/.cache/butterfly-effect/playwright"
+export PLAYWRIGHT_BROWSERS_PATH="$PLAYWRIGHT_CACHE"
+
+if [ ! -d "$PLAYWRIGHT_CACHE" ] || [ -z "$(ls -A "$PLAYWRIGHT_CACHE" 2>/dev/null)" ]; then
+  printf "Installing browser (first time only, ~150 MB)"
+  mkdir -p "$PLAYWRIGHT_CACHE"
+  python -m playwright install chromium &>/dev/null &
   PW_PID=$!
   while kill -0 "$PW_PID" 2>/dev/null; do printf "."; sleep 2; done
   wait "$PW_PID"

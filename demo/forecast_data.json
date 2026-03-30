@@ -1,19 +1,19 @@
 {
   "days": [
     {
-      "date": "2026-03-23",
+      "date": "2026-03-30",
       "balance": 3800.0,
       "events": [],
       "below_threshold": false
     },
     {
-      "date": "2026-03-24",
+      "date": "2026-03-31",
       "balance": 3800.0,
       "events": [],
       "below_threshold": false
     },
     {
-      "date": "2026-03-25",
+      "date": "2026-04-01",
       "balance": 3315.0,
       "events": [
         {
@@ -26,43 +26,43 @@
       "below_threshold": false
     },
     {
-      "date": "2026-03-26",
+      "date": "2026-04-02",
       "balance": 3315.0,
       "events": [],
       "below_threshold": false
     },
     {
-      "date": "2026-03-27",
+      "date": "2026-04-03",
       "balance": 3315.0,
       "events": [],
       "below_threshold": false
     },
     {
-      "date": "2026-03-28",
+      "date": "2026-04-04",
       "balance": 3315.0,
       "events": [],
       "below_threshold": false
     },
     {
-      "date": "2026-03-29",
+      "date": "2026-04-05",
       "balance": 3315.0,
       "events": [],
       "below_threshold": false
     },
     {
-      "date": "2026-03-30",
+      "date": "2026-04-06",
       "balance": 3315.0,
       "events": [],
       "below_threshold": false
     },
     {
-      "date": "2026-03-31",
+      "date": "2026-04-07",
       "balance": 3315.0,
       "events": [],
       "below_threshold": false
     },
     {
-      "date": "2026-04-01",
+      "date": "2026-04-08",
       "balance": 940.0,
       "events": [
         {
@@ -81,19 +81,19 @@
       "below_threshold": true
     },
     {
-      "date": "2026-04-02",
+      "date": "2026-04-09",
       "balance": 940.0,
       "events": [],
       "below_threshold": true
     },
     {
-      "date": "2026-04-03",
+      "date": "2026-04-10",
       "balance": 940.0,
       "events": [],
       "below_threshold": true
     },
     {
-      "date": "2026-04-04",
+      "date": "2026-04-11",
       "balance": 4140.0,
       "events": [
         {
@@ -106,25 +106,25 @@
       "below_threshold": false
     },
     {
-      "date": "2026-04-05",
+      "date": "2026-04-12",
       "balance": 4140.0,
       "events": [],
       "below_threshold": false
     },
     {
-      "date": "2026-04-06",
+      "date": "2026-04-13",
       "balance": 4140.0,
       "events": [],
       "below_threshold": false
     },
     {
-      "date": "2026-04-07",
+      "date": "2026-04-14",
       "balance": 4140.0,
       "events": [],
       "below_threshold": false
     },
     {
-      "date": "2026-04-08",
+      "date": "2026-04-15",
       "balance": 3760.0,
       "events": [
         {
@@ -137,13 +137,13 @@
       "below_threshold": false
     },
     {
-      "date": "2026-04-09",
+      "date": "2026-04-16",
       "balance": 3760.0,
       "events": [],
       "below_threshold": false
     },
     {
-      "date": "2026-04-10",
+      "date": "2026-04-17",
       "balance": 3695.0,
       "events": [
         {
@@ -156,31 +156,31 @@
       "below_threshold": false
     },
     {
-      "date": "2026-04-11",
+      "date": "2026-04-18",
       "balance": 3695.0,
       "events": [],
       "below_threshold": false
     },
     {
-      "date": "2026-04-12",
+      "date": "2026-04-19",
       "balance": 3695.0,
       "events": [],
       "below_threshold": false
     },
     {
-      "date": "2026-04-13",
+      "date": "2026-04-20",
       "balance": 3695.0,
       "events": [],
       "below_threshold": false
     },
     {
-      "date": "2026-04-14",
+      "date": "2026-04-21",
       "balance": 3695.0,
       "events": [],
       "below_threshold": false
     },
     {
-      "date": "2026-04-15",
+      "date": "2026-04-22",
       "balance": 3465.0,
       "events": [
         {
@@ -199,19 +199,19 @@
       "below_threshold": false
     },
     {
-      "date": "2026-04-16",
+      "date": "2026-04-23",
       "balance": 3465.0,
       "events": [],
       "below_threshold": false
     },
     {
-      "date": "2026-04-17",
+      "date": "2026-04-24",
       "balance": 3465.0,
       "events": [],
       "below_threshold": false
     },
     {
-      "date": "2026-04-18",
+      "date": "2026-04-25",
       "balance": 6665.0,
       "events": [
         {
@@ -224,13 +224,13 @@
       "below_threshold": false
     },
     {
-      "date": "2026-04-19",
+      "date": "2026-04-26",
       "balance": 6665.0,
       "events": [],
       "below_threshold": false
     },
     {
-      "date": "2026-04-20",
+      "date": "2026-04-27",
       "balance": 6170.0,
       "events": [
         {
@@ -249,13 +249,13 @@
       "below_threshold": false
     },
     {
-      "date": "2026-04-21",
+      "date": "2026-04-28",
       "balance": 6170.0,
       "events": [],
       "below_threshold": false
     },
     {
-      "date": "2026-04-22",
+      "date": "2026-04-29",
       "balance": 6098.0,
       "events": [
         {
@@ -268,19 +268,19 @@
       "below_threshold": false
     },
     {
-      "date": "2026-04-23",
+      "date": "2026-04-30",
       "balance": 6098.0,
       "events": [],
       "below_threshold": false
     },
     {
-      "date": "2026-04-24",
+      "date": "2026-05-01",
       "balance": 6098.0,
       "events": [],
       "below_threshold": false
     },
     {
-      "date": "2026-04-25",
+      "date": "2026-05-02",
       "balance": 5613.0,
       "events": [
         {
@@ -293,19 +293,19 @@
       "below_threshold": false
     },
     {
-      "date": "2026-04-26",
+      "date": "2026-05-03",
       "balance": 5613.0,
       "events": [],
       "below_threshold": false
     },
     {
-      "date": "2026-04-27",
+      "date": "2026-05-04",
       "balance": 5613.0,
       "events": [],
       "below_threshold": false
     },
     {
-      "date": "2026-04-28",
+      "date": "2026-05-05",
       "balance": 5163.0,
       "events": [
         {
@@ -318,19 +318,19 @@
       "below_threshold": false
     },
     {
-      "date": "2026-04-29",
+      "date": "2026-05-06",
       "balance": 5163.0,
       "events": [],
       "below_threshold": false
     },
     {
-      "date": "2026-04-30",
+      "date": "2026-05-07",
       "balance": 5163.0,
       "events": [],
       "below_threshold": false
     },
     {
-      "date": "2026-05-01",
+      "date": "2026-05-08",
       "balance": 2788.0,
       "events": [
         {
@@ -349,7 +349,7 @@
       "below_threshold": false
     },
     {
-      "date": "2026-05-02",
+      "date": "2026-05-09",
       "balance": 5988.0,
       "events": [
         {
@@ -362,19 +362,19 @@
       "below_threshold": false
     },
     {
-      "date": "2026-05-03",
+      "date": "2026-05-10",
       "balance": 5988.0,
       "events": [],
       "below_threshold": false
     },
     {
-      "date": "2026-05-04",
+      "date": "2026-05-11",
       "balance": 5988.0,
       "events": [],
       "below_threshold": false
     },
     {
-      "date": "2026-05-05",
+      "date": "2026-05-12",
       "balance": 5703.0,
       "events": [
         {
@@ -387,7 +387,7 @@
       "below_threshold": false
     },
     {
-      "date": "2026-05-06",
+      "date": "2026-05-13",
       "balance": 5703.0,
       "events": [],
       "below_threshold": false
@@ -402,7 +402,7 @@
   ],
   "current_balance": 3800.0,
   "buffer_threshold": 2000.0,
-  "refreshed_at": "2026-03-23T14:22:18.432011",
+  "refreshed_at": "Monday Mar 30, 2026 at 6:41 AM",
   "horizon_days": 45,
   "has_ai_predictions": true,
   "_recurring_raw": [

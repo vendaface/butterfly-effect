@@ -1,4 +1,4 @@
-# Butterfly Effect v0.9.2
+# Butterfly Effect v0.9.3-beta
 
 > **Unofficial tool — not affiliated with or endorsed by Monarch Money, Inc. Use at your own risk.**
 
@@ -64,7 +64,7 @@ Click any transaction pill to open the editing panel. Change single amounts, cha
 
 ### AI Insights drawer
 
-Click **✦ AI Insights** in the header to slide the AI panel in from the right. It overlays the transaction schedule without shifting the graph. Transfer recommendations and seasonal spending observations appear here. The Corrections panel below lets you feed the AI specific facts about your finances to fix its accuracy.
+Click the **AI** tab on the right edge of the window to slide the panel in from the right. It overlays the transaction schedule without shifting the graph. Transfer recommendations and seasonal spending observations appear here. The Corrections panel below lets you feed the AI specific facts about your finances to fix its accuracy.
 
 <img src="docs/screenshots/dashboard-txrecs-ai-insights.png" width="640" alt="AI Insights drawer open, showing risk flags, seasonal notes, and the Corrections panel">
 
@@ -187,11 +187,11 @@ The first time you open the dashboard the app fetches your transaction history f
 
 **Run AI Analysis** — generates fresh AI insights. Run this once a day or whenever you want an updated analysis. Requires an AI API key in Settings → AI Insights.
 
-**AI Insights drawer** — click **✦ AI Insights** in the header to slide the panel in over the transaction schedule. Click it again (or the × inside) to close it.
+**AI Insights drawer** — click the **AI** tab on the right edge of the window to slide the panel in over the transaction schedule. Click the **×** inside, or click the tab again, to close it.
 
 **Resize columns** — drag the vertical handle between the two panes to adjust how much width each side gets.
 
-**Settings** — everything is configurable from the Settings page. Key options:
+**Settings** — click the butterfly icon (⚙) in the top-right to open Settings. Key options:
 
 | Setting | Description |
 |---|---|
@@ -297,10 +297,15 @@ Here is exactly where data flows and where it is stored:
 ### Authentication & Monarch connection
 
 1. When you click **Connect to Monarch**, a Chromium browser window opens on your machine. You log in directly to `app.monarchmoney.com` — your credentials go from your keyboard to Monarch's servers, nowhere else.
-2. After a successful login, Playwright saves your session cookies to `browser_state.json` in the app folder. Subsequent data fetches use this saved session (headless, no visible window) to avoid repeated logins.
+2. After a successful login, Playwright saves your session cookies to `browser_state.json`. Subsequent data fetches use this saved session (headless, no visible window) to avoid repeated logins.
 3. All future data fetches go directly from your computer to `api.monarch.com` — the same GraphQL endpoint your browser uses when you visit Monarch normally.
 
-### Data storage (all files are local, in the app folder)
+### Data storage (all files are local)
+
+All runtime data is stored in your user data directory — never in a cloud service or the app bundle:
+
+- **Mac:** `~/Library/Application Support/Butterfly Effect/`
+- **Linux:** `~/.local/share/butterfly-effect/`
 
 | File | What it contains | Leaves your device? |
 |---|---|---|
@@ -312,6 +317,7 @@ Here is exactly where data flows and where it is stored:
 | `payment_day_overrides.json` | Your billing day corrections | **Never** |
 | `scenarios.json` | Scenario modeling events | **Never** |
 | `monarch_accounts_cache.json` | Account names and IDs from Monarch | **Never** |
+| `monarch_raw_cache.json` | Cached Monarch transaction data | **Never** |
 | `user_context.md` | Corrections you feed to the AI | Only if you configure an AI provider |
 
 All sensitive files are written with owner-only permissions (`chmod 600`) so other users on the same machine cannot read them.
@@ -354,16 +360,22 @@ Your AI API key is stored only in `.env` on your device. It is sent only to your
 
 ### File overview
 
+All runtime files live in your user data directory:
+- **Mac:** `~/Library/Application Support/Butterfly Effect/`
+- **Linux:** `~/.local/share/butterfly-effect/`
+
 | File | Purpose |
 |---|---|
 | `config.yaml` | Main configuration (auto-created on first launch) |
-| `.env` | AI API key (auto-created on first launch) |
+| `.env` | AI API key (auto-created when you save an AI key) |
 | `browser_state.json` | Saved Monarch login session |
+| `monarch_raw_cache.json` | Cached Monarch transaction data (enables instant startup) |
+| `monarch_accounts_cache.json` | Cached account list from Monarch |
 | `insights.json` | Latest AI analysis output |
 | `payment_overrides.json` | Variable payment amounts you've set |
 | `payment_day_overrides.json` | Billing day corrections |
 | `scenarios.json` | Scenario modeling events |
-| `monarch_accounts_cache.json` | Cached account list from Monarch |
+| `dismissed_suggestions.json` | AI suggestions you've dismissed |
 | `user_context.md` | Corrections and facts injected into AI prompts |
 
 ### Resetting to a clean state

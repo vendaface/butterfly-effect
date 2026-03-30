@@ -66,6 +66,9 @@
     }
 
     header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
       background: var(--header-bg);
       border-bottom: 1px solid var(--border);
       padding: 18px 32px;
@@ -390,6 +393,14 @@
     .setup-go-btn--pulse {
       animation: goBtnPulse 0.9s ease-in-out 3;
     }
+    @keyframes flutter {
+      0%, 100% { transform: translateY(0) rotate(-5deg); }
+      50%       { transform: translateY(-12px) rotate(5deg); }
+    }
+    @keyframes shimmy {
+      0%   { transform: translateX(-140%); }
+      100% { transform: translateX(370%); }
+    }
   </style>
 </head>
 <body>
@@ -423,6 +434,53 @@
   window.showError = function(msg)  { _showToast(msg, true);  };
   window.showInfo  = function(msg)  { _showToast(msg, false); };
 })();
+
+function onGoToDashboard(e) {
+  if (document.getElementById('goToDashboardBtn').classList.contains('setup-go-btn--disabled')) return false;
+  var ov = document.getElementById('firstRunOverlay');
+  if (ov) ov.style.display = 'flex';
+  return true;
+}
+
+var _aiOptOutTimer = null;
+
+function showAiOptOutBanner() {
+  var b = document.getElementById('aiOptOutBanner');
+  if (b) { b.style.display = 'flex'; b.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+}
+
+function startAiOptOutCountdown() {
+  document.getElementById('aiOptOutBanner').style.display = 'none';
+  var toast = document.getElementById('aiOptOutToast');
+  var count = document.getElementById('aiOptOutCount');
+  toast.style.display = 'flex';
+  var n = 10;
+  count.textContent = n;
+  _aiOptOutTimer = setInterval(function () {
+    n--;
+    count.textContent = n;
+    if (n <= 0) { clearInterval(_aiOptOutTimer); executeAiClearData(); }
+  }, 1000);
+}
+
+function cancelAiOptOut() {
+  clearInterval(_aiOptOutTimer);
+  document.getElementById('aiOptOutToast').style.display = 'none';
+  showToast('Deletion cancelled — your AI data has been kept.');
+}
+
+function executeAiClearData() {
+  fetch('/api/settings/ai/clear-data', {
+    method: 'POST',
+    headers: { 'X-CSRF-Token': _csrfToken, 'Content-Type': 'application/json' }
+  })
+  .then(function(r) { return r.json(); })
+  .then(function() {
+    document.getElementById('aiOptOutToast').style.display = 'none';
+    showToast('API key and AI data deleted from this device.');
+  })
+  .catch(function() { showError('Failed to delete AI data — try again.'); });
+}
 </script>
 
 <header>
@@ -460,7 +518,7 @@
   <div style="margin-top:18px;text-align:center;">
     <a id="goToDashboardBtn" href="/?autorefresh=1"
        class="setup-go-btn{% if not setup_status.complete %} setup-go-btn--disabled{% endif %}"
-       onclick="if(this.classList.contains('setup-go-btn--disabled'))return false; this.textContent='Opening\u2026'; this.style.opacity='0.6'; return true;"
+       onclick="return onGoToDashboard(event);"
        {% if not setup_status.complete %}aria-disabled="true"{% endif %}>
       Go to Dashboard →
     </a>
@@ -474,7 +532,7 @@
 <!-- ── Monarch Connection ─────────────────────────────────────────────── -->
 <div class="settings-card{% if setup_mode %} card-required{% endif %}">
   <h2>Monarch Connection{% if setup_mode %}<span class="setup-step-badge"><span class="step-num">1</span>Required</span>{% endif %}</h2>
-  <p class="card-desc">Connect to Monarch to authorize access, then select your primary checking account for bill pay forecasting.</p>
+  {% if not setup_mode %}<p class="card-desc">Connect to Monarch to authorize access, then select your primary checking account for bill pay forecasting.</p>{% endif %}
 
   <div class="monarch-section-label">Step 1 — Connect to Monarch</div>
 
@@ -688,6 +746,31 @@
   </div>
 
   <button class="save-btn" id="saveAiBtn" onclick="saveSection('ai')" style="margin-top:20px;">Save AI Settings</button>
+
+  <!-- Opt-out offer — shown after saving with AI disabled -->
+  <div id="aiOptOutBanner" style="display:none;margin-top:14px;padding:12px 16px;
+       background:#fff8e6;border:1px solid #f5c842;border-radius:10px;
+       font-size:0.85rem;color:#7a5100;align-items:center;gap:10px;flex-wrap:wrap;">
+    <span style="flex:1;">AI Insights disabled. To fully remove your API key and all AI-generated data from this device:</span>
+    <button onclick="startAiOptOutCountdown()"
+            style="background:#f5c842;border:none;border-radius:6px;padding:5px 12px;
+                   font-size:0.82rem;font-weight:600;cursor:pointer;color:#7a5100;white-space:nowrap;">
+      Delete key &amp; data
+    </button>
+    <button onclick="document.getElementById('aiOptOutBanner').style.display='none'"
+            style="background:none;border:none;font-size:1.1rem;cursor:pointer;color:#7a5100;line-height:1;">✕</button>
+  </div>
+</div>
+
+<!-- AI opt-out countdown toast (fixed bottom-right) -->
+<div id="aiOptOutToast" style="display:none;position:fixed;bottom:24px;right:24px;
+     background:#1c1c1e;color:#f0f0f5;border-radius:12px;padding:14px 18px;
+     box-shadow:0 4px 24px rgba(0,0,0,0.35);z-index:9999;
+     align-items:center;gap:12px;font-size:0.875rem;">
+  <span>Deleting API key &amp; AI data in <strong id="aiOptOutCount">10</strong>s…</span>
+  <button onclick="cancelAiOptOut()"
+          style="background:#30d158;border:none;border-radius:6px;padding:4px 14px;
+                 color:#fff;font-weight:600;cursor:pointer;font-size:0.82rem;white-space:nowrap;">Undo</button>
 </div>
 
 <!-- ── Forecast Settings ──────────────────────────────────────────────── -->
@@ -1036,6 +1119,8 @@ function saveSection(section) {
         if (payload.anthropic_api_key) _markConfigured('anthropicApiKey');
         if (payload.openai_api_key)    _markConfigured('openaiApiKey');
         if (payload.google_api_key)    _markConfigured('googleApiKey');
+        // Offer full data deletion when AI is disabled
+        if (payload.enabled === false) showAiOptOutBanner();
       }
       // Hide any open sensitive inputs after successful save
       document.querySelectorAll('.sens-input-wrap').forEach(function(w) {
@@ -1498,5 +1583,21 @@ function factoryReset() {
   <a href="https://github.com/vendaface/butterfly-effect" style="color:var(--text-secondary);text-decoration:none;">GitHub</a>
 </footer>
 
+<div id="firstRunOverlay" style="display:none;position:fixed;inset:0;
+     background:rgba(13,17,23,0.93);z-index:9999;flex-direction:column;
+     align-items:center;justify-content:center;color:#f0f0f5;text-align:center;padding:40px;">
+  <div style="font-size:56px;margin-bottom:20px;
+              animation:flutter 2.5s ease-in-out infinite;">🦋</div>
+  <div style="font-size:1.25rem;font-weight:600;margin-bottom:8px;">
+    Building your first forecast…</div>
+  <div style="font-size:0.88rem;opacity:0.6;margin-bottom:28px;">
+    Connecting to Monarch and fetching your data.<br>This takes about a minute on first run.
+  </div>
+  <div style="width:220px;height:3px;background:#21262d;border-radius:2px;overflow:hidden;">
+    <div style="height:100%;width:38%;
+                background:linear-gradient(90deg,#0a84ff,#30d158);border-radius:2px;
+                animation:shimmy 1.7s cubic-bezier(0.4,0,0.6,1) infinite;"></div>
+  </div>
+</div>
 </body>
 </html>

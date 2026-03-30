@@ -17,14 +17,16 @@ from dotenv import load_dotenv
 
 from storage import _atomic_write
 
-load_dotenv()
-
 # ── Path constants ─────────────────────────────────────────────────────────────
 
-_BASE = Path(__file__).parent
+from paths import APP_DATA_DIR   # noqa: E402 — after stdlib imports
+
+_BASE = APP_DATA_DIR
 
 _CONFIG_PATH = _BASE / "config.yaml"
 _ENV_PATH    = _BASE / ".env"
+
+load_dotenv(_ENV_PATH)
 
 # Keys that must never be sent to the browser as plaintext
 _SENSITIVE_ENV_KEYS = {
@@ -120,6 +122,18 @@ def _update_env_key(key: str, value: str) -> None:
         lines.append(f"{key}={value}")
     _atomic_write(_ENV_PATH, "\n".join(lines) + "\n")
     os.environ[key] = value   # pick up immediately without restart
+
+
+def _delete_env_key(key: str) -> None:
+    """Remove a key from .env entirely and clear it from os.environ.
+
+    Used for privacy opt-out — leaves no empty key line behind.
+    """
+    if _ENV_PATH.exists():
+        lines = [l for l in _ENV_PATH.read_text().splitlines()
+                 if not l.startswith(f"{key}=")]
+        _atomic_write(_ENV_PATH, "\n".join(lines) + ("\n" if lines else ""))
+    os.environ.pop(key, None)
 
 
 def _read_env_value(key: str) -> str:

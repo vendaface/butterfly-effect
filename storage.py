@@ -12,11 +12,14 @@ Owns:
 import json
 import os
 import re
+from datetime import datetime
 from pathlib import Path
 
 # ── Path constants ─────────────────────────────────────────────────────────────
 
-_BASE = Path(__file__).parent
+from paths import APP_DATA_DIR   # noqa: E402
+
+_BASE = APP_DATA_DIR
 
 _INSIGHTS_FILE               = _BASE / "insights.json"
 _USER_CONTEXT_FILE           = _BASE / "user_context.md"
@@ -28,6 +31,7 @@ _SCENARIOS_FILE               = _BASE / "scenarios.json"
 _ACCOUNTS_CACHE_FILE          = _BASE / "monarch_accounts_cache.json"
 _DISMISSED_SUGGESTIONS_FILE   = _BASE / "dismissed_suggestions.json"
 _PAYMENT_DAY_OVERRIDES_FILE   = _BASE / "payment_day_overrides.json"
+_MONARCH_RAW_CACHE_FILE       = _BASE / "monarch_raw_cache.json"
 
 # ── Regex patterns for user_context.md parsing ────────────────────────────────
 
@@ -257,3 +261,37 @@ def _load_payment_day_overrides() -> dict:
         return good
     except Exception:
         return {}
+
+
+# ── Monarch raw data disk cache ───────────────────────────────────────────────
+
+def _load_monarch_raw_cache() -> dict | None:
+    """Load raw Monarch data (balance, transactions, recurring, fetched_at) from disk.
+
+    Returns None if the file is missing, unreadable, or structurally invalid.
+    The returned dict always contains a 'fetched_at' ISO timestamp so callers
+    can determine how old the data is.
+    """
+    if not _MONARCH_RAW_CACHE_FILE.exists():
+        return None
+    try:
+        data = json.loads(_MONARCH_RAW_CACHE_FILE.read_text())
+        if not isinstance(data, dict):
+            return None
+        required = ("fetched_at", "balance", "transactions", "recurring")
+        if not all(k in data for k in required):
+            return None
+        return data
+    except Exception:
+        return None
+
+
+def _save_monarch_raw_cache(balance, transactions: list, recurring: list) -> None:
+    """Persist raw Monarch data to disk atomically with a fetched_at timestamp."""
+    payload = {
+        "fetched_at":   datetime.now().isoformat(),
+        "balance":      balance,
+        "transactions": transactions,
+        "recurring":    recurring,
+    }
+    _atomic_write(_MONARCH_RAW_CACHE_FILE, json.dumps(payload))

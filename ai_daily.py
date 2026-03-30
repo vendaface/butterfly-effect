@@ -30,8 +30,9 @@ import monarch_client
 
 load_dotenv()
 
-_CONFIG_PATH = Path(__file__).parent / "config.yaml"
-_INSIGHTS_FILE = Path(__file__).parent / "insights.json"
+from paths import APP_DATA_DIR
+_CONFIG_PATH   = APP_DATA_DIR / "config.yaml"
+_INSIGHTS_FILE = APP_DATA_DIR / "insights.json"
 
 
 def _load_config() -> dict:

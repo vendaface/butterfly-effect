@@ -140,15 +140,48 @@
     #refreshOverlay small { font-size: 0.8rem; color: var(--text-tertiary); }
 
     /* AI panel pulse while analysis is running */
-    .ai-panel.running { animation: ai-pulse 2s ease-in-out infinite; }
+    .ai-panel.running { animation: ai-pulse 1.5s ease-in-out infinite; }
     @keyframes ai-pulse {
       0%, 100% { box-shadow: 0 0 0 0 rgba(0,113,227,0); }
       50% { box-shadow: 0 0 0 4px rgba(0,113,227,0.18); }
     }
-    [data-theme="dark"] .ai-panel.running { animation: ai-pulse-dark 2s ease-in-out infinite; }
+    [data-theme="dark"] .ai-panel.running { animation: ai-pulse-dark 1.5s ease-in-out infinite; }
     @keyframes ai-pulse-dark {
       0%, 100% { box-shadow: 0 0 0 0 rgba(64,156,255,0); }
       50% { box-shadow: 0 0 0 6px rgba(64,156,255,0.55); }
+    }
+    /* Drawer border + inset glow pulses while an AI run is in progress */
+    .ai-drawer:has(#aiPanel.running) { animation: ai-drawer-pulse 1.5s ease-in-out infinite; }
+    @keyframes ai-drawer-pulse {
+      0%, 100% { border-left-color: var(--border);
+                 box-shadow: -6px 0 28px rgba(0,0,0,0.13); }
+      50%       { border-left-color: rgba(0, 113, 227, 1);
+                 box-shadow: -6px 0 28px rgba(0,0,0,0.13), inset 6px 0 28px rgba(0, 113, 227, 0.18); }
+    }
+    [data-theme="dark"] .ai-drawer:has(#aiPanel.running) { animation: ai-drawer-pulse-dark 1.5s ease-in-out infinite; }
+    @keyframes ai-drawer-pulse-dark {
+      0%, 100% { border-left-color: var(--border);
+                 box-shadow: -6px 0 28px rgba(0,0,0,0.13); }
+      50%       { border-left-color: rgba(64, 156, 255, 1);
+                 box-shadow: -6px 0 28px rgba(0,0,0,0.13), inset 6px 0 28px rgba(64, 156, 255, 0.22); }
+    }
+    /* AI toggle button pulses while an AI run is in progress */
+    /* Spinning sparkle icon when AI is running */
+    #aiToggleIcon.spinning {
+      display: inline-block;
+      animation: ai-spin 1.1s linear infinite;
+    }
+    @keyframes ai-spin { to { transform: rotate(360deg); } }
+    /* Pulse toggle button amber while running — unambiguously "busy", not "ready" */
+    body:has(#aiPanel.running) #aiEdgeTab { animation: ai-btn-pulse 1.5s ease-in-out infinite; }
+    @keyframes ai-btn-pulse {
+      0%, 100% { color: var(--text-secondary); border-color: var(--border); box-shadow: -3px 0 12px rgba(0,0,0,0.09); }
+      50%       { color: #ff9500; border-color: rgba(255,149,0,0.7); box-shadow: -3px 0 14px rgba(255,149,0,0.35); }
+    }
+    [data-theme="dark"] body:has(#aiPanel.running) #aiEdgeTab { animation: ai-btn-pulse-dark 1.5s ease-in-out infinite; }
+    @keyframes ai-btn-pulse-dark {
+      0%, 100% { color: var(--text-secondary); border-color: var(--border); box-shadow: -3px 0 12px rgba(0,0,0,0.09); }
+      50%       { color: #ff9f0a; border-color: rgba(255,159,10,0.7); box-shadow: -3px 0 16px rgba(255,159,10,0.4); }
     }
     .settings-link {
       background: none;
@@ -256,6 +289,8 @@
       right: 0;
       bottom: 0;
       width: 360px;
+      min-width: 360px;
+      max-width: 540px;
       background: var(--surface);
       border-left: 1px solid var(--border);
       box-shadow: -6px 0 28px rgba(0,0,0,0.13);
@@ -264,17 +299,31 @@
       z-index: 50;
       overflow-y: auto;
       overflow-x: hidden;
-      display: flex;
-      flex-direction: column;
     }
     .ai-drawer.open { transform: translateX(0); }
+    .ai-drawer.resizing { transition: none !important; }
+    /* Drag handle — invisible hit zone on the left edge */
+    .ai-drawer-handle {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 6px;
+      cursor: col-resize;
+      z-index: 10;
+      border-radius: 3px 0 0 3px;
+      transition: background 0.15s;
+    }
+    .ai-drawer-handle:hover,
+    .ai-drawer-handle.dragging { background: rgba(0, 113, 227, 0.18); }
+    [data-theme="dark"] .ai-drawer-handle:hover,
+    [data-theme="dark"] .ai-drawer-handle.dragging { background: rgba(64, 156, 255, 0.22); }
 
     /* AI panel inside the drawer — flush edges */
     .ai-drawer .ai-panel {
       border-radius: 0;
       border: none;
       margin-bottom: 0;
-      flex: 1;
     }
     .ai-drawer .ai-header {
       position: sticky;
@@ -283,17 +332,44 @@
       background: var(--surface);
     }
 
-    /* AI toggle button in header */
-    #aiToggleBtn {
+    /* Persistent right-edge AI tab */
+    #aiEdgeTab {
+      position: fixed;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 28px;
+      padding: 14px 0;
+      border-radius: 8px 0 0 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-right: none;
+      box-shadow: -3px 0 12px rgba(0,0,0,0.09);
       display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 5px;
-      font-size: 0.78rem;
+      gap: 6px;
+      cursor: pointer;
+      z-index: 49;
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      transition: background 0.15s, opacity 0.25s ease;
     }
-    #aiToggleBtn.active {
-      background: var(--surface-2);
-      color: #0a84ff;
-      border-color: #0a84ff44;
+    #aiEdgeTab:hover { background: var(--surface-2); }
+    /* Hide tab when drawer is open — drawer covers the right edge */
+    #aiEdgeTab.drawer-open { opacity: 0; pointer-events: none; }
+    /* Status tints */
+    #aiEdgeTab.status-fresh { color: #34c759; border-color: #34c75966; }
+    #aiEdgeTab.status-stale { color: #ff9500; border-color: #ff950066; }
+    /* Rotated "AI" label */
+    .ai-edge-label {
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      transform: rotate(180deg);
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: var(--text-secondary);
     }
 
     /* Summary cards */
@@ -493,6 +569,13 @@
       gap: 10px;
     }
     .ai-header h2 { font-size: 0.95rem; font-weight: 600; }
+    .ai-disabled-notice {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      background: var(--surface-2);
+      border-bottom: 1px solid var(--border-light);
+      padding: 5px 22px;
+    }
     .ai-status {
       font-size: 0.7rem;
       font-weight: 600;
@@ -642,6 +725,7 @@
     .corr-type-pill.note { background: var(--surface-2); color: var(--text-secondary); }
     [data-theme="dark"] .corr-type-pill.correction { background: #0a2a4a; color: #5aadff; }
     [data-theme="dark"] .corr-type-pill.known-fact { background: #0a2a15; color: #4caf72; }
+    [data-theme="dark"] .stale-badge[style*="fff3cd"] { background: #2d2200 !important; color: #ffcc44 !important; }
 
     /* Scenario Modeling card */
     .scenario-card { background: var(--surface); border-radius: 14px; padding: 20px 24px; margin-bottom: 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); border-left: 3px solid #5856d6; }
@@ -734,16 +818,30 @@
 
 <header>
   <div style="display:flex;align-items:center;gap:10px;">
-    <svg width="34" height="34" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="flex-shrink:0;">
-      <path d="M15 15 C12 9 4 7 5 13 C6 17 12 17 15 17 Z" fill="#30d158"/>
-      <path d="M15 17 C9 21 3 27 7 29 C11 31 14 22 15 17 Z" fill="#1ea83c"/>
-      <path d="M17 15 C20 9 28 7 27 13 C26 17 20 17 17 17 Z" fill="#0a84ff"/>
-      <path d="M17 17 C23 21 29 27 25 29 C21 31 18 22 17 17 Z" fill="#0060cc"/>
-      <ellipse cx="16" cy="16" rx="2" ry="6" fill="#1c1c1e"/>
-      <circle cx="16" cy="16" r="3" fill="#ff9f0a"/>
-      <line x1="16" y1="13.5" x2="16" y2="18.5" stroke="#1c1c1e" stroke-width="1.1" stroke-linecap="round"/>
-      <line x1="14.3" y1="15" x2="17.7" y2="15" stroke="#1c1c1e" stroke-width="1" stroke-linecap="round"/>
-      <line x1="14.3" y1="17" x2="17.7" y2="17" stroke="#1c1c1e" stroke-width="1" stroke-linecap="round"/>
+    <svg width="34" height="34" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="flex-shrink:0;">
+      <defs>
+        <linearGradient id="dh-ul" x1="50" y1="54" x2="5"  y2="24" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#1a6fff"/><stop offset="100%" stop-color="#5ee7d4"/>
+        </linearGradient>
+        <linearGradient id="dh-ur" x1="50" y1="54" x2="95" y2="24" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#1a6fff"/><stop offset="100%" stop-color="#30d158"/>
+        </linearGradient>
+        <linearGradient id="dh-ll" x1="50" y1="60" x2="22" y2="88" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#005ec0"/><stop offset="100%" stop-color="#34c759"/>
+        </linearGradient>
+        <linearGradient id="dh-lr" x1="50" y1="60" x2="78" y2="88" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#005ec0"/><stop offset="100%" stop-color="#5ee7d4"/>
+        </linearGradient>
+      </defs>
+      <path d="M 50,48 C 40,25 12,12 5,26 C 1,40 14,56 50,60 Z"  fill="url(#dh-ul)"/>
+      <path d="M 50,48 C 60,25 88,12 95,26 C 99,40 86,56 50,60 Z" fill="url(#dh-ur)"/>
+      <path d="M 50,60 C 38,64 20,72 22,84 C 24,94 40,92 50,66 Z" fill="url(#dh-ll)"/>
+      <path d="M 50,60 C 62,64 80,72 78,84 C 76,94 60,92 50,66 Z" fill="url(#dh-lr)"/>
+      <ellipse cx="50" cy="54" rx="3" ry="22" fill="#0d1229"/>
+      <path d="M 49,32 Q 38,17 33,9" stroke="#0d1229" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+      <circle cx="33" cy="9" r="1.8" fill="#1a6fff"/>
+      <path d="M 51,32 Q 62,17 67,9" stroke="#0d1229" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+      <circle cx="67" cy="9" r="1.8" fill="#30d158"/>
     </svg>
     <div>
       <h1>Butterfly Effect</h1>
@@ -753,10 +851,17 @@
   </div>
   <div style="display:flex;gap:8px;align-items:center;">
     <button id="themeToggle" class="settings-link" onclick="toggleTheme()" title="Toggle dark/light mode" style="padding:5px 8px;font-size:0.95rem;">🌙</button>
-    <a href="/settings" class="settings-link" title="Configure app settings" style="padding:5px 10px;"><svg width="16" height="16" viewBox="0 0 32 32" style="flex-shrink:0;display:block;" xmlns="http://www.w3.org/2000/svg"><path d="M15 15 C12 9 4 7 5 13 C6 17 12 17 15 17 Z" fill="#30d158"/><path d="M15 17 C9 21 3 27 7 29 C11 31 14 22 15 17 Z" fill="#1ea83c"/><path d="M17 15 C20 9 28 7 27 13 C26 17 20 17 17 17 Z" fill="#0a84ff"/><path d="M17 17 C23 21 29 27 25 29 C21 31 18 22 17 17 Z" fill="#0060cc"/><ellipse cx="16" cy="16" rx="2" ry="6" fill="#1c1c1e"/><circle cx="16" cy="16" r="3" fill="#ff9f0a"/><line x1="16" y1="13.5" x2="16" y2="18.5" stroke="#1c1c1e" stroke-width="1.1" stroke-linecap="round"/><line x1="14.3" y1="15" x2="17.7" y2="15" stroke="#1c1c1e" stroke-width="1" stroke-linecap="round"/><line x1="14.3" y1="17" x2="17.7" y2="17" stroke="#1c1c1e" stroke-width="1" stroke-linecap="round"/><circle cx="25" cy="25" r="8.5" fill="var(--surface,#f2f2f7)"/><text x="25" y="28.5" text-anchor="middle" font-size="11.5" fill="var(--text-secondary,#6e6e73)" style="font-family:system-ui,-apple-system,sans-serif;">⚙</text></svg> Settings</a>
-    {% if data %}
-    <button id="aiToggleBtn" class="settings-link" onclick="toggleAiDrawer()" title="Toggle AI Insights panel" style="padding:5px 10px;">✦ AI Insights</button>
-    {% endif %}
+    <a href="/settings" class="settings-link" title="Settings" style="padding:5px 8px;display:flex;align-items:center;"><svg width="18" height="18" viewBox="0 0 100 100" style="flex-shrink:0;display:block;" xmlns="http://www.w3.org/2000/svg">
+  <path d="M 50,48 C 40,25 12,12 5,26 C 1,40 14,56 50,60 Z"  fill="#1a6fff"/>
+  <path d="M 50,48 C 60,25 88,12 95,26 C 99,40 86,56 50,60 Z" fill="#30d158"/>
+  <path d="M 50,60 C 38,64 20,72 22,84 C 24,94 40,92 50,66 Z" fill="#005ec0"/>
+  <path d="M 50,60 C 62,64 80,72 78,84 C 76,94 60,92 50,66 Z" fill="#5ee7d4"/>
+  <ellipse cx="50" cy="54" rx="3" ry="22" fill="#0d1229"/>
+  <circle cx="76" cy="76" r="27" fill="var(--surface,#f2f2f7)"/>
+  <text x="76" y="88" text-anchor="middle" font-size="28"
+        fill="var(--text-secondary,#6e6e73)"
+        style="font-family:system-ui,-apple-system,sans-serif;">⚙</text>
+</svg></a>
     <div class="split-btn-wrap" id="refreshSplitWrap">
       <button class="refresh-btn split-main" id="refreshForecastBtn"
               onclick="refreshForecast()"
@@ -788,8 +893,15 @@
 
 {% if data %}
 
+<!-- Persistent right-edge AI tab — always visible when drawer is closed -->
+<button id="aiEdgeTab" onclick="toggleAiDrawer()" title="AI Insights" aria-label="Toggle AI Insights panel">
+  <span id="aiToggleIcon">✦</span>
+  <span class="ai-edge-label">AI</span>
+</button>
+
 <!-- AI Insights drawer — slides in from the right, overlays the schedule -->
 <div class="ai-drawer" id="aiDrawer">
+  <div class="ai-drawer-handle" id="aiDrawerHandle"></div>
   <div class="ai-panel" id="aiPanel">
     <div class="ai-header">
       <button id="aiCollapseBtn" onclick="toggleAiDrawer()" title="Close AI Insights"
@@ -797,7 +909,7 @@
       <h2>AI Insights</h2>
       <span class="ai-status loading" id="aiStatus">Loading…</span>
       <button id="dashRunAiBtn" onclick="dashRunAiAnalysis()"
-              style="margin-left:auto;background:none;border:1px solid #d2d2d7;border-radius:6px;padding:3px 10px;font-size:0.75rem;font-weight:500;color:#6e6e73;cursor:pointer;"
+              style="margin-left:auto;background:none;border:1px solid var(--border-input);border-radius:6px;padding:3px 10px;font-size:0.75rem;font-weight:500;color:var(--text-secondary);cursor:pointer;"
               title="Re-run AI analysis — may take a few minutes">▶ Refresh AI</button>
     </div>
     <div id="dashAiRunLog" style="display:none;font-size:0.72rem;font-family:monospace;color:#aeaeb2;padding:5px 22px 6px;background:var(--surface-2);border-bottom:1px solid var(--border-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
@@ -976,7 +1088,7 @@
 <div class="events-wrap">
   <div style="padding:12px 18px 0;border-bottom:none;">
     <h2 style="font-size:0.9rem;font-weight:600;">Scheduled Payments &amp; Credits</h2>
-    <div class="meta" style="margin-top:2px;">Updated {{ data.refreshed_at }}</div>
+    <div class="meta" style="margin-top:2px;">Updated {{ data.refreshed_at }}{% if data.monarch_data_stale %} <span class="stale-badge" style="background:#fff3cd;color:#92620a;" title="Monarch data is {{ '%.0f'|format(data.monarch_data_age_hours) }}h old · click ↻ Refresh Forecast to update">⚠ stale ({{ '%.0f'|format(data.monarch_data_age_hours) }}h)</span>{% endif %}</div>
   </div>
   <div class="pill-legend">
     <span style="font-size:0.74rem;color:var(--text-tertiary);margin-right:2px;line-height:1.9;">Key:</span>
@@ -984,7 +1096,7 @@
     <span class="evt-pill calendar"  style="cursor:default;">Calendar</span>
     <span class="evt-pill predicted" style="cursor:default;">AI Predicted</span>
     <span class="evt-pill scenario"  style="cursor:default;">Scenario</span>
-    <span class="evt-pill calendar unknown" style="cursor:default;">$? (no amount)</span>
+    <span class="evt-pill monarch unknown" style="cursor:default;">$? (no amount)</span>
     <span style="font-size:0.7rem;color:var(--text-tertiary);margin-left:4px;align-self:center;">│ right edge:</span>
     <span style="display:inline-flex;align-items:center;gap:3px;font-size:0.7rem;color:var(--text-secondary);">
       <span style="display:inline-block;width:10px;height:13px;border-right:3px solid #34c759;"></span>income
@@ -1052,18 +1164,16 @@
   // Build red zone: fill below threshold
   const thresholdLine = days.map(() => threshold);
 
-  // Pin tooltip to top of chart so it never covers data nodes.
-  // x follows the cursor; y anchors to the chart top edge; alignment flips
-  // left↔right at 60% width so it doesn't clip either side edge.
+  // Pin tooltip to the top corner OPPOSITE the cursor so it never overlaps
+  // the hovered node. Left-half cursor → top-right corner; right-half → top-left.
   Chart.Tooltip.positioners.topFixed = function(items, eventPos) {
     const ca = this.chart.chartArea;
-    const rightThird = ca.left + (ca.right - ca.left) * 0.6;
-    return {
-      x: Math.min(Math.max(eventPos.x, ca.left), ca.right),
-      y: ca.top + 6,
-      xAlign: eventPos.x > rightThird ? 'right' : 'left',
-      yAlign: 'top',
-    };
+    const midX = ca.left + (ca.right - ca.left) * 0.5;
+    if (eventPos.x < midX) {
+      return { x: ca.right - 10, y: ca.top + 6, xAlign: 'right', yAlign: 'top' };
+    } else {
+      return { x: ca.left + 10, y: ca.top + 6, xAlign: 'left', yAlign: 'top' };
+    }
   };
 
   new Chart(ctx, {
@@ -1230,6 +1340,19 @@
     var status = document.getElementById('aiStatus');
     var content = document.getElementById('aiContent');
 
+    // Disable Refresh AI button when AI is not runnable (disabled or no key)
+    var refreshBtn = document.getElementById('dashRunAiBtn');
+    if (refreshBtn && !refreshBtn.disabled) {
+      refreshBtn.disabled        = !data.ai_ready;
+      refreshBtn.style.opacity   = data.ai_ready ? '' : '0.4';
+      refreshBtn.style.cursor    = data.ai_ready ? '' : 'default';
+      refreshBtn.title = data.ai_ready
+        ? 'Re-run AI analysis — may take a few minutes'
+        : (data.ai_enabled === false
+            ? 'AI Insights is disabled — enable it in Settings'
+            : 'No API key configured — add one in Settings → AI Insights');
+    }
+
     // Status badge
     if (data.status === 'fresh') {
       status.textContent = 'Fresh';
@@ -1238,16 +1361,45 @@
       status.textContent = 'Stale';
       status.className = 'ai-status stale';
     } else if (data.status === 'not_generated') {
-      status.textContent = 'Not generated';
-      status.className = 'ai-status error';
-      var notGenMsg = data.ai_ready
-        ? 'Click <strong>▶ Refresh AI</strong> above to generate your first AI insights.'
-        : 'No AI insights yet. Go to <a href="/settings#ai">Settings → AI Insights</a> to configure an AI provider, then click <strong>▶ Refresh AI</strong> above.';
+      status.textContent = data.ai_enabled === false ? 'Disabled' : 'Not generated';
+      status.className   = data.ai_enabled === false ? 'ai-status loading' : 'ai-status error';
+      var notGenMsg;
+      if (data.ai_ready) {
+        notGenMsg = 'Click <strong>▶ Refresh AI</strong> above to generate your first AI insights.';
+      } else if (data.ai_enabled === false) {
+        notGenMsg = 'AI Insights is disabled. <a href="/settings#ai">Enable it in Settings</a> to generate insights.';
+      } else {
+        notGenMsg = 'No AI key configured. <a href="/settings#ai">Add an API key in Settings → AI Insights</a>, then click <strong>▶ Refresh AI</strong>.';
+      }
       content.innerHTML = '<div class="ai-not-available">' + notGenMsg + '</div>';
       return;
     } else {
       status.textContent = data.status || '?';
       status.className = 'ai-status loading';
+    }
+
+    // If insights exist but AI is now disabled, show a muted notice strip
+    var existingNotice = document.getElementById('aiDisabledNotice');
+    if (data.ai_enabled === false) {
+      if (!existingNotice) {
+        var notice = document.createElement('div');
+        notice.id = 'aiDisabledNotice';
+        notice.className = 'ai-disabled-notice';
+        notice.innerHTML = 'AI Insights is disabled — showing previously generated results. ' +
+          '<a href="/settings#ai" style="color:inherit;text-decoration:underline;">Re-enable in Settings</a>';
+        var aiHeader = document.querySelector('.ai-header');
+        if (aiHeader) aiHeader.after(notice);
+      }
+    } else if (existingNotice) {
+      existingNotice.remove();
+    }
+
+    // Mirror status onto the edge tab
+    var toggleBtn = document.getElementById('aiEdgeTab');
+    if (toggleBtn) {
+      toggleBtn.classList.remove('status-fresh', 'status-stale');
+      if (data.status === 'fresh') toggleBtn.classList.add('status-fresh');
+      else if (data.status === 'stale') toggleBtn.classList.add('status-stale');
     }
 
     // Session token accumulation — track cumulative usage across AI runs this session
@@ -1442,10 +1594,10 @@
   // Open / close AI Insights drawer
   window.toggleAiDrawer = function() {
     var drawer  = document.getElementById('aiDrawer');
-    var toggleBtn = document.getElementById('aiToggleBtn');
+    var edgeTab = document.getElementById('aiEdgeTab');
     if (!drawer) return;
     var nowOpen = drawer.classList.toggle('open');
-    if (toggleBtn) toggleBtn.classList.toggle('active', nowOpen);
+    if (edgeTab) edgeTab.classList.toggle('drawer-open', nowOpen);
     if (nowOpen) {
       localStorage.setItem('_aiDrawerOpen', '1');
     } else {
@@ -1458,11 +1610,52 @@
   // Restore drawer open state on page load
   (function() {
     if (localStorage.getItem('_aiDrawerOpen') === '1') {
-      var drawer = document.getElementById('aiDrawer');
-      var btn    = document.getElementById('aiToggleBtn');
-      if (drawer) drawer.classList.add('open');
-      if (btn)    btn.classList.add('active');
+      var drawer  = document.getElementById('aiDrawer');
+      var edgeTab = document.getElementById('aiEdgeTab');
+      if (drawer)  drawer.classList.add('open');
+      if (edgeTab) edgeTab.classList.add('drawer-open');
     }
+  })();
+
+  // ── AI drawer resize ────────────────────────────────────────────────────────
+  (function () {
+    var DRAWER_MIN = 360, DRAWER_MAX = 540;
+    var drawer = document.getElementById('aiDrawer');
+    var handle = document.getElementById('aiDrawerHandle');
+    if (!drawer || !handle) return;
+
+    // Restore persisted width
+    var saved = localStorage.getItem('aiDrawerWidth');
+    if (saved) drawer.style.width = saved + 'px';
+
+    var startX, startWidth;
+
+    handle.addEventListener('mousedown', function (e) {
+      e.preventDefault();
+      startX = e.clientX;
+      startWidth = drawer.offsetWidth;
+      drawer.classList.add('resizing');
+      handle.classList.add('dragging');
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    });
+
+    document.addEventListener('mousemove', function (e) {
+      if (!drawer.classList.contains('resizing')) return;
+      // Drawer anchors to the right; dragging left widens it
+      var delta = startX - e.clientX;
+      var w = Math.min(DRAWER_MAX, Math.max(DRAWER_MIN, startWidth + delta));
+      drawer.style.width = w + 'px';
+    });
+
+    document.addEventListener('mouseup', function () {
+      if (!drawer.classList.contains('resizing')) return;
+      drawer.classList.remove('resizing');
+      handle.classList.remove('dragging');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      localStorage.setItem('aiDrawerWidth', parseInt(drawer.style.width, 10));
+    });
   })();
 
   // If an AI run is already in progress (started from Settings), auto-poll until done
@@ -1474,6 +1667,7 @@
       var aiPanel = document.getElementById('aiPanel');
       if (btn) { btn.textContent = 'Running\u2026'; btn.disabled = true; btn.style.color = '#ff9500'; }
       if (aiPanel) aiPanel.classList.add('running');
+      _setAiToggleSpin(true);
       // Don't double-up if dashRunAiAnalysis already started a poller
       if (typeof _dashAiPollInterval !== 'undefined' && _dashAiPollInterval) return;
       _dashAiPollInterval = setInterval(function() {
@@ -1491,6 +1685,7 @@
               _dashAiPollInterval = null;
               if (runLog) runLog.style.display = 'none';
               if (aiPanel) aiPanel.classList.remove('running');
+              _setAiToggleSpin(false);
               if (btn) { btn.textContent = '\u25b6 Refresh AI'; btn.style.color = ''; btn.disabled = false; }
               window.loadAiInsights();
             }
@@ -2052,30 +2247,28 @@ function pillSkipMonth(desc, month) {
 }
 
 function pillOverrideAmountExpand(desc, currentAmount) {
-  var sign = (parseFloat(currentAmount) >= 0) ? 1 : -1;
   var inner = document.getElementById('pillPopoverInner');
-  var curAmt = currentAmount !== '' ? Math.abs(parseFloat(currentAmount)) : '';
+  var curAmt = currentAmount !== '' ? parseFloat(currentAmount) : '';
   var row = document.createElement('div');
   row.className = 'pill-pop-amount-row';
   row.innerHTML = '<span style="color:var(--text-secondary);font-size:0.84rem;flex-shrink:0;">$</span>'
-    + '<input id="pillAmtInput" type="number" min="0" step="1"'
-    + ' placeholder="Amount (e.g. 750)" value="' + (curAmt || '') + '" />'
-    + '<button onclick="pillOverrideAmountSave(' + _escHtml(JSON.stringify(desc)) + ',' + sign + ')">Save</button>';
+    + '<input id="pillAmtInput" type="number" step="1"'
+    + ' placeholder="e.g. -750 (expense) or 2000 (income)" value="' + (curAmt || '') + '" />'
+    + '<button onclick="pillOverrideAmountSave(' + _escHtml(JSON.stringify(desc)) + ')">Save</button>';
   var firstBtn = inner.querySelector('.pill-pop-action');
   if (firstBtn) inner.insertBefore(row, firstBtn);
   else inner.appendChild(row);
   document.getElementById('pillAmtInput').focus();
 }
 
-function pillOverrideAmountSave(desc, sign) {
-  sign = (sign >= 0) ? 1 : -1;
+function pillOverrideAmountSave(desc) {
   var input = document.getElementById('pillAmtInput');
   var val = parseFloat(input.value);
-  if (isNaN(val) || val < 0) { showError('Enter a valid positive amount.'); return; }
+  if (isNaN(val)) { showError('Enter a valid amount (negative for expenses, positive for income).'); return; }
   _closePillPopover();
   fetch('/api/payment-overrides', {
     method: 'POST', headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({name: desc, amount: val * sign, note: ''})
+    body: JSON.stringify({name: desc, amount: val, note: ''})
   })
   .then(function(r) { return r.json(); })
   .then(function() { loadPayOverrides(); showStaleBanner('"' + desc + '" amount overridden'); })
@@ -2083,19 +2276,18 @@ function pillOverrideAmountSave(desc, sign) {
 }
 
 function pillEditOccurrence(desc, date, currentAmount) {
-  var sign = (parseFloat(currentAmount) >= 0) ? 1 : -1;
   var parts = date.split('-');
   var label = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]))
     .toLocaleString('default', {month:'long', day:'numeric', year:'numeric'});
   var inner = document.getElementById('pillPopoverInner');
-  var curAmt = currentAmount !== '' ? Math.abs(parseFloat(currentAmount)) : '';
+  var curAmt = currentAmount !== '' ? parseFloat(currentAmount) : '';
   var row = document.createElement('div');
   row.className = 'pill-pop-amount-row';
   row.innerHTML = '<span style="color:var(--text-secondary);font-size:0.84rem;flex-shrink:0;">$</span>'
-    + '<input id="pillAmtInput" type="number" min="0" step="1"'
+    + '<input id="pillAmtInput" type="number" step="1"'
     + ' placeholder="Amount for ' + _escHtml(label) + '" value="' + (curAmt || '') + '" />'
     + '<button onclick="pillEditOccurrenceSave('
-    + _escHtml(JSON.stringify(desc)) + ',' + _escHtml(JSON.stringify(date)) + ',' + sign
+    + _escHtml(JSON.stringify(desc)) + ',' + _escHtml(JSON.stringify(date))
     + ')">Save</button>';
   var firstBtn = inner.querySelector('.pill-pop-action');
   if (firstBtn) inner.insertBefore(row, firstBtn);
@@ -2103,15 +2295,14 @@ function pillEditOccurrence(desc, date, currentAmount) {
   document.getElementById('pillAmtInput').focus();
 }
 
-function pillEditOccurrenceSave(desc, date, sign) {
-  sign = (sign >= 0) ? 1 : -1;
+function pillEditOccurrenceSave(desc, date) {
   var input = document.getElementById('pillAmtInput');
   var val = parseFloat(input.value);
-  if (isNaN(val) || val < 0) { showError('Enter a valid positive amount.'); return; }
+  if (isNaN(val)) { showError('Enter a valid amount (negative for expenses, positive for income).'); return; }
   _closePillPopover();
   fetch('/api/payment-monthly-amounts', {
     method: 'POST', headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({name: desc, date: date, amount: val * sign, note: ''})
+    body: JSON.stringify({name: desc, date: date, amount: val, note: ''})
   })
   .then(function(r) { return r.json(); })
   .then(function() {
@@ -2244,6 +2435,12 @@ function addScenarioEvent() {
     loadScenarios();
     var hint = document.getElementById('scenarioRefreshHint');
     if (hint) { hint.style.display = 'block'; clearTimeout(hint._hideTimer); }
+    // Reset form fields to defaults for the next entry
+    document.getElementById('scnDate').value   = '';
+    document.getElementById('scnDesc').value   = '';
+    document.getElementById('scnAmount').value = '';
+    document.getElementById('scnSign').value   = '1';
+    document.getElementById('scnFreq').value   = 'one-time';
     btn.textContent = 'Added \u2713';
     btn.style.background = '#34c759';
     setTimeout(function() {
@@ -2295,6 +2492,11 @@ loadScenarios();
 <script>
 if (typeof _dashAiPollInterval === 'undefined') var _dashAiPollInterval = null;
 
+function _setAiToggleSpin(on) {
+  var icon = document.getElementById('aiToggleIcon');
+  if (icon) icon.classList.toggle('spinning', on);
+}
+
 // ── Session token counter ─────────────────────────────────────────────────────
 function _updateAiSessionDisplay() {
   var session = JSON.parse(sessionStorage.getItem('_aiSession') || 'null');
@@ -2318,9 +2520,10 @@ function dashRunAiAnalysis() {
   btn.disabled = true;
   btn.style.color = '#ff9500';
 
-  // Pulse the AI panel border to signal live background activity
+  // Pulse the AI panel border and spin the toggle icon to signal live background activity
   var aiPanel = document.getElementById('aiPanel');
   if (aiPanel) aiPanel.classList.add('running');
+  _setAiToggleSpin(true);
 
   // Show stage label immediately so there's no blank gap before first poll
   var runLog = document.getElementById('dashAiRunLog');
@@ -2339,6 +2542,7 @@ function dashRunAiAnalysis() {
         btn.disabled = false;
         if (aiPanel) aiPanel.classList.remove('running');
         if (refreshForecastBtn) refreshForecastBtn.disabled = false;
+        _setAiToggleSpin(false);
         return;
       }
       // Poll until done — clear any existing interval first to avoid orphaned polls
@@ -2358,6 +2562,7 @@ function dashRunAiAnalysis() {
               clearInterval(_dashAiPollInterval);
               if (runLog) runLog.style.display = 'none';
               if (aiPanel) aiPanel.classList.remove('running');
+              _setAiToggleSpin(false);
               if (refreshForecastBtn) refreshForecastBtn.disabled = false;
               btn.textContent = '\u2713 Done \u2014 reloading\u2026';
               btn.style.color = '#34c759';
@@ -2391,6 +2596,7 @@ function dashRunAiAnalysis() {
       btn.style.color = '#ff3b30';
       btn.disabled = false;
       if (aiPanel) aiPanel.classList.remove('running');
+      _setAiToggleSpin(false);
       if (refreshForecastBtn) refreshForecastBtn.disabled = false;
     });
 }

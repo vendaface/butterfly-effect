@@ -29,3 +29,4 @@ monarch:
   # Find it in Settings → Monarch Connection → click "Connect to Monarch".
   checking_account_id: ''
   checking_account_name: ''
+  cache_stale_hours: 12   # show "stale data" badge when Monarch data is older than this (hours)

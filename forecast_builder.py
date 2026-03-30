@@ -13,28 +13,45 @@ Owns:
 
 import calendar
 import json
+import sys
 import time
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
 import calendar_client
+
+# Bundle-aware base directory (works both frozen and in dev)
+_BASE_DIR = Path(getattr(sys, '_MEIPASS', Path(__file__).parent))
 import forecast as forecast_engine
 import monarch_client
 
 from storage import (
+    _MONARCH_RAW_CACHE_FILE,
     _load_insights,
+    _load_monarch_raw_cache,
     _load_payment_day_overrides,
     _load_payment_monthly_amounts,
     _load_payment_overrides,
     _load_payment_skips,
     _load_scenarios,
+    _save_monarch_raw_cache,
 )
 
 # ── In-memory caches ──────────────────────────────────────────────────────────
 
 _cache: dict = {}         # computed forecast — cleared by settings changes
-_monarch_raw: dict = {}   # raw Monarch data (balance, transactions, recurring)
+_monarch_raw: dict = {}   # raw Monarch data (balance, transactions, recurring, fetched_at)
                           # survives settings changes; only reset by /refresh or account change
+
+# Pre-populate _monarch_raw from disk on import.
+# This means the very first GET / after launch computes the forecast from the
+# previous session's Monarch data instead of waiting for a live Playwright fetch.
+# The forecast includes a 'monarch_data_stale' flag when the data is older than
+# the user-configured threshold so they know a refresh is advisable.
+_disk_cache = _load_monarch_raw_cache()
+if _disk_cache:
+    _monarch_raw.update(_disk_cache)
+del _disk_cache  # free the reference; _monarch_raw owns the data now
 
 
 def _clear_forecast_cache() -> None:
@@ -46,6 +63,10 @@ def _clear_all_cache() -> None:
     """Full reset — clears both forecast and raw Monarch data, forcing a Playwright re-fetch."""
     _cache.clear()
     _monarch_raw.clear()
+    try:
+        _MONARCH_RAW_CACHE_FILE.unlink(missing_ok=True)
+    except Exception:
+        pass
 
 
 # ── AI prediction helpers ─────────────────────────────────────────────────────
@@ -159,7 +180,7 @@ def _get_forecast_data(config: dict) -> dict:
     # Demo mode: serve pre-built forecast from disk so screenshots work without Monarch.
     # Enable by setting  demo_mode: true  in config.yaml.
     if config.get("demo_mode"):
-        _demo = Path(__file__).parent / "demo" / "forecast_data.json"
+        _demo = _BASE_DIR / "demo" / "forecast_data.json"
         if _demo.exists():
             data = json.loads(_demo.read_text())
             _cache["data"] = data
@@ -194,7 +215,13 @@ def _get_forecast_data(config: dict) -> dict:
             "balance":      current_balance,
             "transactions": transactions,
             "recurring":    base_recurring,
+            "fetched_at":   datetime.now().isoformat(),
         })
+        # Persist to disk so the next launch can skip the Playwright fetch
+        try:
+            _save_monarch_raw_cache(current_balance, transactions, base_recurring)
+        except Exception as exc:
+            print(f"[WARN] Could not save Monarch raw cache: {exc}")
 
     # Work from a copy so overrides/exclusions don't mutate the cached raw recurring list
     recurring = list(base_recurring)
@@ -314,9 +341,37 @@ def _get_forecast_data(config: dict) -> dict:
         payment_skips=payment_skips or None,
         payment_monthly_amounts=payment_monthly_amounts or None,
     )
-    result["refreshed_at"] = datetime.now().strftime("%A %b %-d, %Y at %-I:%M %p")
+    # Use the Monarch data fetch time as the "Updated" timestamp so the label
+    # reflects when data actually arrived from Monarch, not when the forecast
+    # was computed (which happens on every page load from cache).
+    fetched_at_str = _monarch_raw.get("fetched_at")
+    if fetched_at_str:
+        try:
+            _fetched_dt = datetime.fromisoformat(fetched_at_str)
+        except Exception:
+            _fetched_dt = datetime.now()
+    else:
+        _fetched_dt = datetime.now()
+    result["refreshed_at"] = _fetched_dt.strftime("%A %b %-d, %Y at %-I:%M %p")
     result["horizon_days"] = horizon
     result["has_ai_predictions"] = bool(predicted_events)
+
+    # ── Monarch data staleness ────────────────────────────────────────────────
+    # Compare fetched_at against the user-configured threshold. Data is always
+    # used regardless of age; the stale flag is purely for UI notification.
+    stale_hours = config.get("monarch", {}).get("cache_stale_hours", 12)
+    monarch_data_stale = False
+    monarch_data_age_hours: float | None = None
+    if fetched_at_str:
+        try:
+            age = datetime.now() - datetime.fromisoformat(fetched_at_str)
+            monarch_data_age_hours = age.total_seconds() / 3600
+            monarch_data_stale = monarch_data_age_hours > stale_hours
+        except Exception:
+            pass
+    result["monarch_data_stale"]     = monarch_data_stale
+    result["monarch_data_age_hours"] = monarch_data_age_hours
+    result["monarch_data_fetched_at"] = fetched_at_str
 
     _cache.update(result)
     return _cache

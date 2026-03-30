@@ -11,7 +11,15 @@ APP_DIR="$(cd "$(dirname "$0")" && pwd)"
 DEMO_DIR="$APP_DIR/demo"
 BACKUP_DIR="$DEMO_DIR/backup"
 
-# Files that get swapped (relative to APP_DIR).
+# Runtime files live in the platform APP_DATA_DIR (mirrors paths.py logic)
+if [ "$(uname)" = "Darwin" ]; then
+    DATA_DIR="$HOME/Library/Application Support/Butterfly Effect"
+else
+    XDG="${XDG_DATA_HOME:-$HOME/.local/share}"
+    DATA_DIR="$XDG/butterfly-effect"
+fi
+
+# Files that get swapped (relative to DATA_DIR).
 # .env is intentionally excluded — the API key isn't used in demo mode,
 # and backing it up risks losing it if something goes wrong.
 DATA_FILES=(
@@ -21,6 +29,7 @@ DATA_FILES=(
     scenarios.json
     user_context.md
     payment_overrides.json
+    payment_monthly_amounts.json
     payment_skips.json
 )
 
@@ -33,10 +42,10 @@ _swap_in() {
         exit 1
     fi
 
-    echo "Backing up real data to $BACKUP_DIR/ ..."
+    echo "Backing up real data from: $DATA_DIR"
     mkdir -p "$BACKUP_DIR"
     for f in "${DATA_FILES[@]}"; do
-        real="$APP_DIR/$f"
+        real="$DATA_DIR/$f"
         if [ -e "$real" ]; then
             cp "$real" "$BACKUP_DIR/$f"
             echo "  ✓ backed up $f"
@@ -47,10 +56,11 @@ _swap_in() {
 
     echo ""
     echo "Copying demo data into place ..."
+    mkdir -p "$DATA_DIR"
     for f in "${DATA_FILES[@]}"; do
         demo="$DEMO_DIR/$f"
         if [ -e "$demo" ]; then
-            cp "$demo" "$APP_DIR/$f"
+            cp "$demo" "$DATA_DIR/$f"
             echo "  ✓ $f"
         else
             echo "  — demo/$f not found (skipping)"
@@ -72,15 +82,15 @@ _swap_out() {
         exit 1
     fi
 
-    echo "Restoring real data from $BACKUP_DIR/ ..."
+    echo "Restoring real data to: $DATA_DIR"
     for f in "${DATA_FILES[@]}"; do
         backup="$BACKUP_DIR/$f"
         if [ -f "$backup" ]; then
-            cp "$backup" "$APP_DIR/$f"
+            cp "$backup" "$DATA_DIR/$f"
             echo "  ✓ restored $f"
         else
             # File didn't exist before demo was turned on — remove the demo copy
-            real="$APP_DIR/$f"
+            real="$DATA_DIR/$f"
             if [ -e "$real" ]; then
                 rm "$real"
                 echo "  — removed $f (did not exist before demo)"

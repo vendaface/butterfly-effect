@@ -25,7 +25,8 @@ import os
 
 load_dotenv()
 
-BROWSER_STATE_FILE = Path(__file__).parent / "browser_state.json"
+from paths import APP_DATA_DIR
+BROWSER_STATE_FILE = APP_DATA_DIR / "browser_state.json"
 GRAPHQL_URL = "https://api.monarch.com/graphql"
 LOGIN_URL = "https://app.monarchmoney.com/login"
 DASHBOARD_URL = "https://app.monarchmoney.com/dashboard"

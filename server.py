@@ -3,6 +3,8 @@ Balance Forecast — local Flask web app.
 Run via: python server.py  (or ./run.sh)
 """
 
+import contextlib
+import io
 import json
 import os
 import re
@@ -15,12 +17,14 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from flask import Flask, jsonify, redirect, render_template, request, url_for, Response
+from paths import APP_DATA_DIR
 
 from config import (
     _CONFIG_PATH,
     _ENV_PATH,
     _SENSITIVE_ENV_KEYS,
     _deep_merge,
+    _delete_env_key,
     _env_key_status,
     _is_first_run,
     _load_config,
@@ -61,7 +65,12 @@ from storage import (
     _write_corrections,
 )
 
-app = Flask(__name__)
+# When bundled with PyInstaller, resource files live under sys._MEIPASS.
+# In normal execution __file__ resolves correctly; this handles both cases.
+BASE_DIR = Path(getattr(sys, '_MEIPASS', Path(__file__).parent))
+
+app = Flask(__name__, template_folder=str(BASE_DIR / 'templates'),
+            static_folder=str(BASE_DIR / 'static'))
 app.config['SECRET_KEY'] = secrets.token_hex(32)   # fresh each restart (no persistent sessions)
 
 # ── CSRF token — generated once per server process ─────────────────────────
@@ -101,9 +110,9 @@ def _harden_file_permissions() -> None:
     sensitive = [
         _ENV_PATH,
         _CONFIG_PATH,
-        Path(__file__).parent / "browser_state.json",
-        Path(__file__).parent / "insights.json",
-        Path(__file__).parent / "user_context.md",
+        APP_DATA_DIR / "browser_state.json",
+        APP_DATA_DIR / "insights.json",
+        APP_DATA_DIR / "user_context.md",
     ]
     for p in sensitive:
         try:
@@ -117,7 +126,7 @@ _harden_file_permissions()
 
 
 # ── App version (read once from VERSION file) ───────────────────────────────
-_VERSION_FILE = Path(__file__).parent / "VERSION"
+_VERSION_FILE = BASE_DIR / "VERSION"
 _APP_VERSION  = _VERSION_FILE.read_text().strip() if _VERSION_FILE.exists() else "dev"
 
 
@@ -164,6 +173,23 @@ def api_forecast():
         return jsonify({"error": str(e)}), 500
 
 
+# ── AI config helpers ─────────────────────────────────────────────────────────
+
+_AI_KEY_MAP = {
+    "anthropic": "ANTHROPIC_API_KEY",
+    "openai":    "OPENAI_API_KEY",
+    "google":    "GOOGLE_API_KEY",
+}
+
+def _ai_ready_status(config: dict) -> tuple[bool, bool]:
+    """Return (ai_enabled, ai_ready) from config. ai_ready requires enabled + API key."""
+    ai_cfg   = config.get("ai", {})
+    enabled  = ai_cfg.get("enabled", False)
+    provider = ai_cfg.get("provider", "anthropic")
+    key_set  = _env_key_status(_AI_KEY_MAP.get(provider, "ANTHROPIC_API_KEY")) == "configured"
+    return enabled, enabled and key_set
+
+
 # ── API: AI insights ───────────────────────────────────────────────────────────
 
 @app.route("/api/ai-insights")
@@ -175,20 +201,12 @@ def api_ai_insights():
     """
     config = _load_config()
     if not _INSIGHTS_FILE.exists():
-        # Determine whether AI is ready to run (enabled + API key present)
-        ai_cfg = config.get("ai", {})
-        ai_enabled = ai_cfg.get("enabled", False)
-        provider = ai_cfg.get("provider", "anthropic")
-        key_map = {
-            "anthropic": "ANTHROPIC_API_KEY",
-            "openai":    "OPENAI_API_KEY",
-            "google":    "GOOGLE_API_KEY",
-        }
-        api_key_set = _env_key_status(key_map.get(provider, "ANTHROPIC_API_KEY")) == "configured"
+        ai_enabled, ai_ready = _ai_ready_status(config)
         return jsonify({
-            "status":   "not_generated",
-            "ai_ready": ai_enabled and api_key_set,
-            "message":  "Run 'python ai_daily.py' to generate AI insights.",
+            "status":      "not_generated",
+            "ai_enabled":  ai_enabled,
+            "ai_ready":    ai_ready,
+            "message":     "Run 'python ai_daily.py' to generate AI insights.",
         }), 404
 
     try:
@@ -242,6 +260,8 @@ def api_ai_insights():
             s for s in suggestions
             if not _already_applied(s) and _sug_fingerprint(s) not in dismissed
         ]
+
+    insights["ai_enabled"], insights["ai_ready"] = _ai_ready_status(config)
 
     return jsonify(insights)
 
@@ -707,6 +727,17 @@ def api_settings_ai():
     return jsonify({"ok": True})
 
 
+@app.route("/api/settings/ai/clear-data", methods=["POST"])
+def api_settings_ai_clear_data():
+    """Delete all AI API keys and insights.json — full privacy opt-out."""
+    for key in ("ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GOOGLE_API_KEY"):
+        _delete_env_key(key)
+    if _INSIGHTS_FILE.exists():
+        _INSIGHTS_FILE.unlink()
+    _clear_forecast_cache()
+    return jsonify({"ok": True})
+
+
 @app.route("/api/settings/monarch", methods=["POST"])
 def api_settings_monarch():
     body       = request.get_json(force=True) or {}
@@ -821,28 +852,43 @@ def api_run_ai_analysis():
     def _run():
         global _ai_running, _ai_run_log
         try:
-            proc = subprocess.Popen(
-                [sys.executable, "-u", str(Path(__file__).parent / "ai_daily.py")],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                bufsize=1,   # line-buffered so output arrives incrementally
-                cwd=str(Path(__file__).parent),
-            )
-            # Kill the process after 15 minutes if it hasn't finished
-            def _kill_on_timeout():
-                _ai_run_log.append("⚠ Analysis timed out after 15 minutes and was stopped.")
-                proc.kill()
-            timer = threading.Timer(900, _kill_on_timeout)
-            timer.start()
-            try:
-                for line in proc.stdout:          # reads one line at a time as they arrive
-                    line = line.rstrip()
-                    if line:
-                        _ai_run_log.append(line)
-                proc.wait()
-            finally:
-                timer.cancel()
+            if getattr(sys, 'frozen', False):
+                # In a PyInstaller bundle sys.executable is the app binary —
+                # spawning it would launch a new app window. Run ai_daily
+                # in-process instead, capturing stdout line-by-line.
+                class _LineCapture(io.TextIOBase):
+                    def write(self, text):
+                        for line in text.splitlines():
+                            if line.strip():
+                                _ai_run_log.append(line)
+                        return len(text)
+                import ai_daily as _ai_daily
+                with contextlib.redirect_stdout(_LineCapture()), \
+                     contextlib.redirect_stderr(_LineCapture()):
+                    _ai_daily.run()
+            else:
+                proc = subprocess.Popen(
+                    [sys.executable, "-u", str(Path(__file__).parent / "ai_daily.py")],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    bufsize=1,   # line-buffered so output arrives incrementally
+                    cwd=str(Path(__file__).parent),
+                )
+                # Kill the process after 15 minutes if it hasn't finished
+                def _kill_on_timeout():
+                    _ai_run_log.append("⚠ Analysis timed out after 15 minutes and was stopped.")
+                    proc.kill()
+                timer = threading.Timer(900, _kill_on_timeout)
+                timer.start()
+                try:
+                    for line in proc.stdout:
+                        line = line.rstrip()
+                        if line:
+                            _ai_run_log.append(line)
+                    proc.wait()
+                finally:
+                    timer.cancel()
         finally:
             _ai_running = False
             _clear_forecast_cache()   # recompute forecast to pick up new AI predictions
