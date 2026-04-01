@@ -45,6 +45,13 @@ dismissed_suggestions.json
 # but developers may create one in the project directory)
 .venv*/
 
+# PyInstaller build artifacts
+dist/
+build/
+
+# Dev/screenshot scripts
+capture_screenshots.py
+
 # Demo mode — all demo/ files are intentional, public demo data.
 # Exceptions must come AFTER the patterns they override.
 !demo/config.yaml
