@@ -64,6 +64,11 @@ def _install_chromium(env: dict) -> bool:
             except Exception:
                 pass
         cmd = [str(node), str(cli), 'install', 'chromium']
+        # When Node.js runs inside a PyInstaller bundle, V8's JIT compiler
+        # fails to reserve virtual memory for its CodeRange because PyInstaller
+        # has already claimed the contiguous region it needs. --jitless disables
+        # the JIT entirely, avoiding the reservation and the resulting SIGTRAP.
+        env = {**env, 'NODE_OPTIONS': '--jitless'}
     else:
         cmd = [sys.executable, '-m', 'playwright', 'install', 'chromium']
     try:
