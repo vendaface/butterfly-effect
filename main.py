@@ -215,6 +215,16 @@ def main():
     # Point Playwright at our dedicated cache directory
     os.environ['PLAYWRIGHT_BROWSERS_PATH'] = str(PLAYWRIGHT_CACHE)
 
+    # When running inside a PyInstaller bundle, V8's JIT compiler fails to
+    # reserve virtual memory for its CodeRange (layout conflict with PyInstaller).
+    # Setting NODE_OPTIONS=--jitless disables V8 JIT for ALL Node subprocesses
+    # spawned by this app — including Playwright's internal driver — fixing the
+    # "Fatal process out of memory: Failed to reserve virtual memory" crash.
+    if getattr(sys, 'frozen', False):
+        existing = os.environ.get('NODE_OPTIONS', '')
+        if '--jitless' not in existing:
+            os.environ['NODE_OPTIONS'] = (existing + ' --jitless').strip()
+
     from config import _load_config
     config = _load_config()
     port = config.get('app', {}).get('port', 5002)
