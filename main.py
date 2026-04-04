@@ -180,6 +180,15 @@ _LOADING_HTML = """<!DOCTYPE html>
     </svg>
     <h1>Butterfly Effect</h1>
     <p>Loading your forecast<span class="dots"></span></p>
+    <p id="lh-sub" style="font-size:13px;color:#636366;margin-top:8px;min-height:1.2em;"></p>
+    <script>
+      // After 8 s without navigation, hint that a first-run Chromium download
+      // may be happening silently in the background (non-blocking to the UI).
+      setTimeout(function(){
+        var el=document.getElementById('lh-sub');
+        if(el) el.textContent='Downloading Chromium for Monarch data (first run, ~150\u202fMB)\u2026';
+      }, 8000);
+    </script>
   </div>
 </body>
 </html>"""

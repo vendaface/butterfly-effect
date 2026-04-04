@@ -12,6 +12,48 @@ OS="linux"
 # ── Clean up leftover startup temp files from previous runs ──────────────────
 rm -f /tmp/butterfly-startup-*.html 2>/dev/null || true
 
+# ── Status file & server for startup screen progress ─────────────────────────
+# startup.html polls http://127.0.0.1:5003/ via <script> tag (JSONP — bypasses
+# file:// CORS) and reads window.__BF_STATUS to show live progress.
+STATUS_FILE="/tmp/butterfly-status-$$.json"
+STATUS_SERVER_PID=""
+
+write_status() {
+  # Usage: write_status STAGE PCT DETAIL [STEP] [TOTAL]
+  # STAGE: starting | venv | pip | playwright | playwright_done | starting
+  printf '{"stage":"%s","pct":%d,"detail":"%s","step":%d,"total":%d}\n' \
+    "$1" "$2" "${3//\"/\\\"}" "${4:-0}" "${5:-0}" > "$STATUS_FILE"
+}
+
+_start_status_server() {
+  # Minimal stdlib HTTP server — no pip packages needed, runs before pip install.
+  "$PYTHON" - "$STATUS_FILE" <<'PYEOF' &
+import http.server, sys, pathlib
+sf = sys.argv[1]
+class H(http.server.BaseHTTPRequestHandler):
+    def log_message(self, *a): pass
+    def do_GET(self):
+        try:    body = ('window.__BF_STATUS=' + pathlib.Path(sf).read_text().strip() + ';').encode()
+        except: body = b'window.__BF_STATUS=null;'
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/javascript; charset=utf-8')
+        self.send_header('Content-Length', len(body))
+        self.end_headers()
+        self.wfile.write(body)
+try:
+    http.server.HTTPServer(('127.0.0.1', 5003), H).serve_forever()
+except Exception:
+    pass
+PYEOF
+  STATUS_SERVER_PID=$!
+}
+
+_stop_status_server() {
+  [ -n "${STATUS_SERVER_PID:-}" ] && kill "$STATUS_SERVER_PID" 2>/dev/null || true
+  rm -f "$STATUS_FILE"
+}
+trap '_stop_status_server' EXIT
+
 # ── Helper: open startup.html with optional hash params ───────────────────────
 # Copy to a unique temp path on each call so macOS 'open' always opens a fresh
 # tab — it would focus an existing tab if the same file:// path were reused,
@@ -96,7 +138,46 @@ if [ "$OS" = "linux" ] && ! "$PYTHON" -m venv --without-pip /tmp/butterfly-venv-
 fi
 rm -rf /tmp/butterfly-venv-check 2>/dev/null || true
 
-# ── Open startup page (Python confirmed present) ──────────────────────────────
+# ── Detect which setup steps are needed (for accurate step counter) ───────────
+VENV="$SCRIPT_DIR/.venv"
+PLAYWRIGHT_CACHE="$HOME/.cache/butterfly-effect/playwright"
+
+_venv_ok=true
+[ ! -x "$VENV/bin/python" ] && _venv_ok=false
+if [ "$_venv_ok" = true ] && ! "$VENV/bin/pip" --version &>/dev/null 2>&1; then
+  _venv_ok=false
+fi
+# Detect pip 25.x / Python 3.14 installation bug: packages appear installed
+# (RECORD exists) but sub-package .py files were never written to disk.
+# Rebuilding the venv with pip 26+ fixes this. Check all known affected packages.
+if [ "$_venv_ok" = true ]; then
+  if "$VENV/bin/pip" show icalendar &>/dev/null 2>&1 \
+      && ! "$VENV/bin/python" -c "from icalendar import Calendar" &>/dev/null 2>&1; then
+    echo "  Detected broken icalendar install (pip 25.x + Python 3.14 bug). Rebuilding venv..."
+    _venv_ok=false
+  fi
+fi
+if [ "$_venv_ok" = true ]; then
+  if "$VENV/bin/pip" show websockets &>/dev/null 2>&1 \
+      && ! "$VENV/bin/python" -c "import websockets.frames" &>/dev/null 2>&1; then
+    echo "  Detected broken websockets install (pip 25.x + Python 3.14 bug). Rebuilding venv..."
+    _venv_ok=false
+  fi
+fi
+
+_need_playwright=false
+{ [ ! -d "$PLAYWRIGHT_CACHE" ] || [ -z "$(ls -A "$PLAYWRIGHT_CACHE" 2>/dev/null)" ]; } \
+  && _need_playwright=true
+
+TOTAL_STEPS=2              # pip check + starting server always happen
+[ "$_venv_ok" = false ]    && TOTAL_STEPS=$((TOTAL_STEPS+1))
+$_need_playwright          && TOTAL_STEPS=$((TOTAL_STEPS+1))
+STEP=0
+
+# ── Open startup page and start live-progress status server ───────────────────
+write_status "starting" 2 "Starting Butterfly Effect…" 0 $TOTAL_STEPS
+_start_status_server
+sleep 0.3   # give Python status server a moment to bind port 5003
 _open_startup
 
 # ── Application data directory ────────────────────────────────────────────────
@@ -129,22 +210,31 @@ if [ ! -f "$APP_DATA/.env" ]; then
 fi
 
 # ── Virtual environment ───────────────────────────────────────────────────────
-VENV="$SCRIPT_DIR/.venv"
-_venv_ok=true
-if [ ! -x "$VENV/bin/python" ]; then
-  _venv_ok=false
-elif ! "$VENV/bin/pip" --version &>/dev/null 2>&1; then
-  _venv_ok=false
-fi
-
+# (_venv_ok and VENV already set above in step detection)
 if [ "$_venv_ok" = false ]; then
+  STEP=$((STEP+1))
+  write_status "venv" 5 "Creating Python environment…" $STEP $TOTAL_STEPS
   echo "Creating virtual environment at $VENV ..."
   rm -rf "$VENV"
   "$PYTHON" -m venv "$VENV"
+  # Upgrade pip before installing packages. pip 25.x bundled with Python 3.14.0
+  # has a bug where packages that ship pre-compiled .pyc files in their wheels
+  # (e.g. icalendar 7.x) don't get their .py source files written to disk.
+  # We use the system Python's working pip (not the venv's bundled pip) to
+  # upgrade, which is the same mechanism that created the venv.
+  _py_short=$("$PYTHON" -c "import sys; v=sys.version_info; print(f'python{v.major}.{v.minor}')" 2>/dev/null || echo "python3")
+  if "$PYTHON" -m pip install --upgrade pip \
+      --target "$VENV/lib/$_py_short/site-packages" --quiet 2>/dev/null; then
+    echo "  pip upgraded to $("$VENV/bin/pip" --version 2>/dev/null | awk '{print $2}')."
+  else
+    echo "  pip upgrade skipped (will use bundled version)."
+  fi
 fi
 source "$VENV/bin/activate"
 
 # ── Dependencies ──────────────────────────────────────────────────────────────
+STEP=$((STEP+1))
+write_status "pip" 18 "Installing Python packages…" $STEP $TOTAL_STEPS
 printf "Checking dependencies"
 pip install -q -r requirements.txt &
 PIP_PID=$!
@@ -157,24 +247,75 @@ if [ $PIP_EXIT -ne 0 ]; then
   exit 1
 fi
 echo " done."
+write_status "pip" 42 "Python packages ready" $STEP $TOTAL_STEPS
 
 # ── Playwright browser ────────────────────────────────────────────────────────
-# Store Chromium in a dedicated cache dir (same path used by the bundled app)
-# so it survives venv rebuilds and isn't mixed with other Playwright projects.
-PLAYWRIGHT_CACHE="$HOME/.cache/butterfly-effect/playwright"
+# PLAYWRIGHT_CACHE and _need_playwright set above in step detection.
 export PLAYWRIGHT_BROWSERS_PATH="$PLAYWRIGHT_CACHE"
 
-if [ ! -d "$PLAYWRIGHT_CACHE" ] || [ -z "$(ls -A "$PLAYWRIGHT_CACHE" 2>/dev/null)" ]; then
-  printf "Installing browser (first time only, ~150 MB)"
+if $_need_playwright; then
+  STEP=$((STEP+1))
+  write_status "playwright" 47 "Downloading Chromium browser (~150 MB)…" $STEP $TOTAL_STEPS
+  echo ""
+  echo "Installing Chromium browser (first time only, ~150 MB)..."
+
+  # ── Debug: confirm playwright Python package is reachable ──
+  echo "  [debug] PLAYWRIGHT_BROWSERS_PATH=$PLAYWRIGHT_BROWSERS_PATH"
+  echo "  [debug] playwright version: $(python -m playwright --version 2>&1 || echo 'NOT FOUND')"
+
   mkdir -p "$PLAYWRIGHT_CACHE"
-  python -m playwright install chromium &>/dev/null &
-  PW_PID=$!
-  while kill -0 "$PW_PID" 2>/dev/null; do printf "."; sleep 2; done
-  wait "$PW_PID"
-  echo " done."
+
+  # Capture all playwright output to a log file so we can show it on failure
+  # and poll it for progress. Do NOT use a background tail pipeline — that
+  # approach was fragile under set -e and misbehaved when stdout isn't a TTY.
+  _PW_LOG="/tmp/butterfly-pw-$$.log"
+  : > "$_PW_LOG"
+  python -m playwright install chromium >"$_PW_LOG" 2>&1 &
+  _PW_PID=$!
+  echo "  [debug] playwright install PID=$_PW_PID, log=$_PW_LOG"
+
+  # Poll loop: show heartbeat dots and update startup screen with any progress.
+  # 'wait PID || var=$?' is safe under set -e; bare 'wait PID; var=$?' is NOT.
+  printf "  Downloading"
+  while kill -0 "$_PW_PID" 2>/dev/null; do
+    printf "."
+    # Scan log for the most recent "X.X MiB / Y.Y MiB" download progress line
+    _prog=$(grep -oE '[0-9]+\.[0-9]+ MiB / [0-9]+\.[0-9]+ MiB' "$_PW_LOG" 2>/dev/null | tail -1 || true)
+    if [ -n "$_prog" ]; then
+      _mb=$(printf '%s' "$_prog" | awk '{print $1}')
+      _mbt=$(printf '%s' "$_prog" | awk '{print $4}')
+      _dp=$(awk "BEGIN{p=int($_mb*100/$_mbt+0.5);print(p>100?100:p)}" 2>/dev/null || echo 0)
+      _op=$(( 47 + _dp * 44 / 100 ))
+      write_status "playwright" "$_op" "Downloading Chromium: $_mb of $_mbt MB" $STEP $TOTAL_STEPS
+    fi
+    sleep 2
+  done
+  echo ""
+
+  # Collect exit code safely — 'wait PID || var=$?' won't trigger set -e
+  _PW_EXIT=0
+  wait "$_PW_PID" || _PW_EXIT=$?
+
+  # Always dump the playwright output — essential for diagnosing failures
+  echo "  [debug] playwright exited with code: $_PW_EXIT"
+  echo "  [debug] playwright log ($(wc -l < "$_PW_LOG" 2>/dev/null || echo '?') lines):"
+  cat "$_PW_LOG" || true
+  rm -f "$_PW_LOG"
+
+  if [ $_PW_EXIT -ne 0 ]; then
+    echo ""
+    echo "WARNING: Chromium browser install failed (exit code $_PW_EXIT)."
+    echo "  The app will still start, but 'Connect to Monarch' may not work."
+    echo "  To retry manually: PLAYWRIGHT_BROWSERS_PATH=$PLAYWRIGHT_CACHE python -m playwright install chromium"
+  else
+    write_status "playwright_done" 93 "Browser download complete" $STEP $TOTAL_STEPS
+    echo "  Browser install complete."
+  fi
 fi
 
 # ── Launch ────────────────────────────────────────────────────────────────────
+STEP=$((STEP+1))
+write_status "starting" 96 "Starting server…" $STEP $TOTAL_STEPS
 echo "Starting Balance Forecast at http://localhost:5002"
 "$PYTHON" server.py &
 SERVER_PID=$!

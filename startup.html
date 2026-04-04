@@ -66,13 +66,32 @@
       letter-spacing: 0.03em;
     }
 
+    /* ── Step badge ── */
+    .step-badge {
+      font-size: 0.72rem;
+      color: #48484a;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      min-height: 1em;
+    }
+
     /* ── Stage label ── */
     .stage {
       font-size: 1rem;
       color: #aeaeb2;
       min-height: 1.5em;
-      margin-bottom: 18px;
+      margin-bottom: 6px;
       transition: opacity 0.35s ease;
+    }
+
+    /* ── Detail sub-message ── */
+    .detail {
+      font-size: 0.82rem;
+      color: #636366;
+      margin-bottom: 20px;
+      min-height: 1.2em;
+      transition: opacity 0.3s ease;
     }
 
     /* ── Progress bar ── */
@@ -82,9 +101,10 @@
       background: #1c1c1e;
       border-radius: 2px;
       overflow: hidden;
-      margin-bottom: 28px;
+      margin-bottom: 16px;
     }
 
+    /* Indeterminate (default): shimmy animation */
     .progress-fill {
       height: 100%;
       width: 38%;
@@ -93,9 +113,30 @@
       animation: shimmy 1.7s cubic-bezier(0.4, 0, 0.6, 1) infinite;
     }
 
+    /* Live mode: real percentage, smooth grow */
+    .progress-fill.live {
+      animation: none;
+      width: 3%;
+      transition: width 0.6s ease;
+    }
+
     @keyframes shimmy {
       0%   { transform: translateX(-140%); }
       100% { transform: translateX(370%);  }
+    }
+
+    /* ── First-run reassurance note ── */
+    .first-run-note {
+      display: none;
+      font-size: 0.78rem;
+      color: #8e8e93;
+      margin-top: 4px;
+      padding: 10px 14px;
+      background: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 8px;
+      line-height: 1.55;
+      text-align: left;
     }
 
     /* ── Subtle background sparkles ── */
@@ -216,10 +257,17 @@
     <h1>Butterfly Effect</h1>
     <p class="subtitle">Balance Forecast dashboard &middot; for Monarch users</p>
 
+    <div class="step-badge" id="stepBadge"></div>
     <div class="stage" id="stage">🦋 Waking up Butterfly Effect&hellip;</div>
+    <div class="detail" id="detail"></div>
 
     <div class="progress-track">
-      <div class="progress-fill"></div>
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+
+    <div class="first-run-note" id="firstRunNote">
+      🌐 <strong>First-run setup:</strong> Downloading the Chromium browser (~150 MB).
+      This only happens once &mdash; future launches will be instant. Please be patient.
     </div>
 
     <div class="error-card" id="errorCard">
@@ -277,7 +325,7 @@
       }
     };
 
-    // ── Show error card (called on load or hashchange) ───────────────────────
+    // ── Show error card ──────────────────────────────────────────────────────
     var _tickInterval = null;
     function showError(errCode, os) {
       var def = ERROR_CONTENT[errCode];
@@ -290,9 +338,6 @@
     }
 
     function checkHash() {
-      // Prefer the variable injected by run.sh into this file's <head>.
-      // macOS 'open' silently drops URL fragments for file:// URLs, so
-      // location.hash is empty and cannot be relied upon.
       var raw = (typeof window.__BF_PARAMS !== 'undefined' ? window.__BF_PARAMS : '')
                 || location.hash.slice(1);
       var params  = new URLSearchParams(raw);
@@ -302,24 +347,74 @@
       return false;
     }
 
-    // Re-check on hash change — macOS 'open' focuses the existing tab and
-    // updates the hash rather than opening a new tab, so JS doesn't re-run.
     window.addEventListener('hashchange', checkHash);
 
     if (checkHash()) {
-      // Error detected on load — no timers needed
+      // Error on load — no timers needed
+
     } else {
 
-    // ── Stage messages keyed by elapsed seconds ─────────────────────────────
-    var stages = [
-      [0,  '\u{1F98B} Waking up Butterfly Effect\u2026'],
-      [3,  '\u{1F40D} Warming up the Python environment\u2026'],
-      [9,  '\u{1F4E6} Installing dependencies\u2026'],
-      [22, '\u{1F680} Starting the forecast engine\u2026'],
-      [42, '\u231B Brewing the perfect storm\u2026'],
-    ];
+    // ── DOM refs ─────────────────────────────────────────────────────────────
+    var stageEl      = document.getElementById('stage');
+    var detailEl     = document.getElementById('detail');
+    var stepBadgeEl  = document.getElementById('stepBadge');
+    var firstRunEl   = document.getElementById('firstRunNote');
+    var progressFill = document.getElementById('progressFill');
 
-    // ── Quips that alternate with stage messages ─────────────────────────────
+    // ── Real-time status mode (driven by JSONP status server on port 5003) ───
+    var _liveMode = false;
+
+    var STAGE_LABELS = {
+      venv:            '\ud83d\udc0d Setting up Python environment\u2026',
+      pip:             '\ud83d\udce6 Installing Python dependencies\u2026',
+      playwright:      '\ud83c\udf10 Downloading Chromium browser\u2026',
+      playwright_done: '\u2705 Browser download complete\u2026',
+      starting:        '\ud83d\ude80 Starting the server\u2026',
+    };
+
+    function _setStage(label) {
+      if (stageEl.textContent === label) return;
+      stageEl.style.opacity = '0';
+      setTimeout(function () { stageEl.textContent = label; stageEl.style.opacity = '1'; }, 175);
+    }
+
+    function applyStatus(s) {
+      if (!s) return;
+      if (!_liveMode) {
+        _liveMode = true;
+        clearInterval(_tickInterval); _tickInterval = null;
+        progressFill.classList.add('live');
+      }
+      var label = STAGE_LABELS[s.stage] || ('\ud83e\udd8b ' + (s.detail || 'Starting up\u2026'));
+      _setStage(label);
+      if (s.detail) detailEl.textContent = s.detail;
+      if (s.pct >= 0) progressFill.style.width = Math.max(3, s.pct) + '%';
+      if (s.step > 0 && s.total > 0)
+        stepBadgeEl.textContent = 'Step ' + s.step + ' of ' + s.total;
+      firstRunEl.style.display = (s.stage === 'playwright' || s.stage === 'playwright_done') ? 'block' : 'none';
+    }
+
+    // ── JSONP polling — <script> tags bypass file:// CORS restrictions ───────
+    function pollStatus() {
+      var s = document.createElement('script');
+      s.src = 'http://127.0.0.1:5003/?' + Date.now();
+      s.onload  = function () {
+        s.remove();
+        if (window.__BF_STATUS) applyStatus(window.__BF_STATUS);
+        setTimeout(pollStatus, 500);
+      };
+      s.onerror = function () { s.remove(); setTimeout(pollStatus, 1500); };
+      document.head.appendChild(s);
+    }
+
+    // ── Fallback: time-based stage messages (if status server never responds) ─
+    var stages = [
+      [0,  '\ud83e\udd8b Waking up Butterfly Effect\u2026'],
+      [3,  '\ud83d\udc0d Warming up the Python environment\u2026'],
+      [9,  '\ud83d\udce6 Installing dependencies\u2026'],
+      [22, '\ud83d\ude80 Starting the forecast engine\u2026'],
+      [42, '\u231b Almost there\u2026'],
+    ];
     var quips = [
       'Reticulating splines\u2026',
       'Calibrating butterfly wings for maximum flappiness\u2026',
@@ -330,33 +425,18 @@
       'Establishing quantum entanglement with Monarch Money\u2026',
       'Defragmenting your financial anxiety\u2026',
     ];
+    var start = Date.now(), quipIdx = 0, showQuip = false;
 
-    var stageEl  = document.getElementById('stage');
-    var start    = Date.now();
-    var quipIdx  = 0;
-    var showQuip = false;   // toggles each tick
-
-    // ── Get the real stage label for current elapsed time ───────────────────
     function getStageLabel() {
-      var elapsed = (Date.now() - start) / 1000;
-      var label = stages[0][1];
-      for (var i = 0; i < stages.length; i++) {
-        if (elapsed >= stages[i][0]) label = stages[i][1];
-      }
+      var elapsed = (Date.now() - start) / 1000, label = stages[0][1];
+      for (var i = 0; i < stages.length; i++) if (elapsed >= stages[i][0]) label = stages[i][1];
       return label;
     }
 
-    // ── Alternate between stage and quip every tick ──────────────────────────
     function tick() {
-      var next;
-      if (showQuip) {
-        next = getStageLabel();
-        showQuip = false;
-      } else {
-        quipIdx = (quipIdx + 1) % quips.length;
-        next = quips[quipIdx];
-        showQuip = true;
-      }
+      if (_liveMode) return;
+      var next = showQuip ? getStageLabel() : quips[(++quipIdx) % quips.length];
+      showQuip = !showQuip;
       stageEl.style.opacity = '0';
       setTimeout(function () { stageEl.textContent = next; stageEl.style.opacity = '1'; }, 175);
     }
@@ -364,14 +444,8 @@
     // ── Poll Flask via Image() — bypasses file:// CORS restrictions ──────────
     function checkReady() {
       var img = new Image();
-      img.onload = function () {
-        // Flask is up — navigate this tab to the app (settings or dashboard)
-        window.location.href = 'http://localhost:5002/';
-      };
-      img.onerror = function () {
-        setTimeout(checkReady, 1000);
-      };
-      // Cache-bust so the browser never reuses a prior response
+      img.onload  = function () { window.location.href = 'http://localhost:5002/'; };
+      img.onerror = function () { setTimeout(checkReady, 1000); };
       img.src = 'http://localhost:5002/_ping?' + Date.now();
     }
 
@@ -399,11 +473,9 @@
     // ── Boot ─────────────────────────────────────────────────────────────────
     stageEl.textContent = getStageLabel();
     makeSparks();
-
     _tickInterval = setInterval(tick, 3200);
-
-    // Wait 1 second before first poll — server is definitely not up yet
-    setTimeout(checkReady, 1000);
+    setTimeout(pollStatus, 300);   // start JSONP status polling immediately
+    setTimeout(checkReady, 1000);  // keep /_ping polling for server-ready redirect
 
     } // end else (no error)
   })();

@@ -61,6 +61,13 @@ _OVERLAY_JS = """(function() {
     + 'Please keep this window open.<br>It will close automatically when done.</div>'
     + '</div>';
   document.body.appendChild(el);
+
+  // Suppress HTML5 constraint-validation tooltips ("please fill out this field") from
+  // the underlying Monarch page. These are triggered by form submit events hitting
+  // required inputs; the overlay covers the page but the browser still fires them.
+  // Calling preventDefault() on the 'invalid' event silently cancels the tooltip
+  // without affecting form submission logic or any other page behaviour.
+  document.addEventListener('invalid', function(e) { e.preventDefault(); }, true);
 })();"""
 
 # Static loading page shown immediately in the blank Chrome tab before any navigation.

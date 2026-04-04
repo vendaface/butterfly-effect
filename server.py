@@ -901,11 +901,26 @@ def api_run_ai_analysis():
 def api_ai_analysis_status():
     """Poll this to track the background AI run."""
     insights = _load_insights() or {}
+
+    # Detect known error types in the completed run's log for rich frontend display.
+    # _ai_run_log is reset to [] at the start of each new run, so this reflects the
+    # most recently completed (or currently running) analysis only.
+    error_type = None
+    error_message = None
+    if not _ai_running and _ai_run_log:
+        for line in _ai_run_log:
+            if 'BILLING_ERROR:' in line:
+                error_type = 'billing'
+                error_message = line.split('BILLING_ERROR:', 1)[-1].strip()
+                break
+
     return jsonify({
-        "running":      _ai_running,
-        "log":          _ai_run_log[-20:],   # last 20 lines of output
-        "generated_at": insights.get("generated_at", ""),
-        "token_usage":  insights.get("token_usage"),
+        "running":       _ai_running,
+        "log":           _ai_run_log[-20:],   # last 20 lines of output
+        "generated_at":  insights.get("generated_at", ""),
+        "token_usage":   insights.get("token_usage"),
+        "error_type":    error_type,
+        "error_message": error_message,
     })
 
 

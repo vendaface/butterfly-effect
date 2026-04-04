@@ -123,7 +123,7 @@ def run(dry_run: bool = False) -> None:
             goals=goals,
             config=config,
         )
-    except RuntimeError as e:
+    except Exception as e:
         print(f"ERROR: {e}", file=sys.stderr)
         sys.exit(1)
 

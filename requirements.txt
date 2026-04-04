@@ -1,7 +1,7 @@
 flask
 pywebview
 playwright
-icalendar
+icalendar<7  # 7.x ships pre-compiled .pyc in wheels; breaks pip 25.x on Python 3.14
 requests
 python-dotenv
 pyyaml

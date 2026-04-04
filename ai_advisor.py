@@ -192,11 +192,30 @@ def _call_anthropic(model: str, user_prompt: str, _config: dict) -> tuple[str, i
             "Get your key at: https://console.anthropic.com/"
         )
     client = anthropic.Anthropic(api_key=api_key)
-    msg = client.messages.create(
-        model=model, max_tokens=2048,
-        system=_SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": user_prompt}],
-    )
+    try:
+        msg = client.messages.create(
+            model=model, max_tokens=2048,
+            system=_SYSTEM_PROMPT,
+            messages=[{"role": "user", "content": user_prompt}],
+        )
+    except anthropic.BadRequestError as e:
+        if 'credit balance' in str(e).lower() or 'billing' in str(e).lower():
+            raise RuntimeError(
+                "BILLING_ERROR: Your Anthropic API credit balance is too low. "
+                "Add credits at https://console.anthropic.com/settings/billing"
+            ) from None
+        raise RuntimeError(f"Anthropic API error (400): {e}") from None
+    except anthropic.AuthenticationError as e:
+        raise RuntimeError(
+            f"Anthropic API key is invalid or expired. "
+            f"Check ANTHROPIC_API_KEY in your .env file. ({e})"
+        ) from None
+    except anthropic.RateLimitError as e:
+        raise RuntimeError(
+            f"Anthropic rate limit exceeded. Try again in a few minutes. ({e})"
+        ) from None
+    except Exception as e:
+        raise RuntimeError(f"Anthropic API error: {e}") from None
     return msg.content[0].text.strip(), msg.usage.input_tokens, msg.usage.output_tokens
 
 
@@ -208,14 +227,29 @@ def _call_openai(model: str, user_prompt: str, _config: dict) -> tuple[str, int,
             "Get your key at: https://platform.openai.com/api-keys"
         )
     client = openai.OpenAI(api_key=api_key)
-    resp = client.chat.completions.create(
-        model=model, max_tokens=2048,
-        response_format={"type": "json_object"},
-        messages=[
-            {"role": "system", "content": _SYSTEM_PROMPT},
-            {"role": "user",   "content": user_prompt},
-        ],
-    )
+    try:
+        resp = client.chat.completions.create(
+            model=model, max_tokens=2048,
+            response_format={"type": "json_object"},
+            messages=[
+                {"role": "system", "content": _SYSTEM_PROMPT},
+                {"role": "user",   "content": user_prompt},
+            ],
+        )
+    except openai.RateLimitError as e:
+        if 'insufficient_quota' in str(e).lower() or 'exceeded your current quota' in str(e).lower():
+            raise RuntimeError(
+                "BILLING_ERROR: Your OpenAI API quota is exceeded. "
+                "Add credits at https://platform.openai.com/account/billing"
+            ) from None
+        raise RuntimeError(f"OpenAI rate limit exceeded. Try again in a few minutes. ({e})") from None
+    except openai.AuthenticationError as e:
+        raise RuntimeError(
+            f"OpenAI API key is invalid or expired. "
+            f"Check OPENAI_API_KEY in your .env file. ({e})"
+        ) from None
+    except Exception as e:
+        raise RuntimeError(f"OpenAI API error: {e}") from None
     raw = resp.choices[0].message.content or ""
     return raw.strip(), resp.usage.prompt_tokens, resp.usage.completion_tokens
 
@@ -228,15 +262,24 @@ def _call_google(model: str, user_prompt: str, _config: dict) -> tuple[str, int,
             "Get your key at: https://aistudio.google.com/app/apikey"
         )
     client = google_genai.Client(api_key=api_key)
-    resp = client.models.generate_content(
-        model=model,
-        contents=user_prompt,
-        config=google_types.GenerateContentConfig(
-            system_instruction=_SYSTEM_PROMPT,
-            response_mime_type="application/json",
-            max_output_tokens=2048,
-        ),
-    )
+    try:
+        resp = client.models.generate_content(
+            model=model,
+            contents=user_prompt,
+            config=google_types.GenerateContentConfig(
+                system_instruction=_SYSTEM_PROMPT,
+                response_mime_type="application/json",
+                max_output_tokens=2048,
+            ),
+        )
+    except Exception as e:
+        msg_lower = str(e).lower()
+        if 'quota' in msg_lower or 'resource exhausted' in msg_lower or 'billing' in msg_lower:
+            raise RuntimeError(
+                "BILLING_ERROR: Your Google AI API quota is exceeded or billing is not enabled. "
+                "Check https://aistudio.google.com/app/billing"
+            ) from None
+        raise RuntimeError(f"Google AI API error: {e}") from None
     usage = resp.usage_metadata
     in_tok  = usage.prompt_token_count     if usage else 0
     out_tok = usage.candidates_token_count if usage else 0

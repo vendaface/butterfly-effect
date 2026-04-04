@@ -1182,6 +1182,34 @@ function _startAiPolling(btn, statusEl, logEl) {
         if (!s.running) {
           clearInterval(_aiPollInterval);
           _aiPollInterval = null;
+          btn.textContent = '\u25b6 Run AI Analysis';
+          btn.disabled = false;
+
+          // ── Error handling ───────────────────────────────────────────────────
+          if (s.error_type === 'billing') {
+            var urlMatch = (s.error_message || '').match(/https?:\/\/\S+/);
+            var billingUrl = urlMatch ? urlMatch[0] : 'https://console.anthropic.com/settings/billing';
+            var providerName = 'your AI provider';
+            if (billingUrl.indexOf('anthropic') !== -1)  providerName = 'your Anthropic account';
+            else if (billingUrl.indexOf('openai') !== -1) providerName = 'your OpenAI account';
+            else if (billingUrl.indexOf('google') !== -1) providerName = 'your Google AI account';
+            statusEl.innerHTML =
+              '<span style="color:#ff3b30;font-weight:600;">&#9888;&#65039; API Credit Balance Too Low</span>'
+              + ' &mdash; ' + providerName + ' is out of credits. '
+              + '<a href="' + billingUrl + '" target="_blank" rel="noopener">Add credits &rarr;</a>'
+              + ', then run again.';
+            statusEl.style.display = 'block';
+            return;
+          }
+          if (s.error_type) {
+            statusEl.innerHTML =
+              '<span style="color:#ff3b30;font-weight:600;">&#9888;&#65039; Analysis Failed</span>'
+              + (s.error_message ? ' &mdash; ' + s.error_message : '. Check the server log for details.');
+            statusEl.style.display = 'block';
+            return;
+          }
+
+          // ── Success ──────────────────────────────────────────────────────────
           var hint = document.getElementById('aiLastRunHint');
           if (s.generated_at) {
             var usage = s.token_usage;
@@ -1209,8 +1237,6 @@ function _startAiPolling(btn, statusEl, logEl) {
           } else {
             statusEl.textContent = '\u2705 Complete. Return to the dashboard to see updated insights.';
           }
-          btn.textContent = '\u25b6 Run AI Analysis';
-          btn.disabled = false;
         }
       });
   }, 2000);
@@ -1317,6 +1343,30 @@ document.addEventListener('DOMContentLoaded', function() {
         else { logEl.textContent = 'Starting\u2026'; }
         logEl.style.display = 'block';
         _startAiPolling(btn, statusEl, logEl);
+      } else if (s.error_type) {
+        // Surface errors from a run that completed on another page (e.g. dashboard)
+        var urlMatch = (s.error_message || '').match(/https?:\/\/\S+/);
+        var billingUrl = urlMatch ? urlMatch[0] : 'https://console.anthropic.com/settings/billing';
+        var providerName = 'your AI provider';
+        if (billingUrl.indexOf('anthropic') !== -1)  providerName = 'your Anthropic account';
+        else if (billingUrl.indexOf('openai') !== -1) providerName = 'your OpenAI account';
+        else if (billingUrl.indexOf('google') !== -1) providerName = 'your Google AI account';
+        if (s.error_type === 'billing') {
+          statusEl.innerHTML =
+            '<span style="color:#ff3b30;font-weight:600;">&#9888;&#65039; API Credit Balance Too Low</span>'
+            + ' &mdash; ' + providerName + ' is out of credits. '
+            + '<a href="' + billingUrl + '" target="_blank" rel="noopener">Add credits &rarr;</a>'
+            + ', then run again.';
+        } else {
+          statusEl.innerHTML =
+            '<span style="color:#ff3b30;font-weight:600;">&#9888;&#65039; Last Analysis Failed</span>'
+            + (s.error_message ? ' &mdash; ' + s.error_message : '. Check the server log for details.');
+        }
+        statusEl.style.display = 'block';
+        if (s.generated_at && hint) {
+          hint.textContent = 'Last run: ' + s.generated_at.slice(0,16).replace('T', '\u2002');
+          hint.style.display = '';
+        }
       } else if (s.generated_at && hint) {
         hint.textContent = 'Last run: ' + s.generated_at.slice(0,16).replace('T', '\u2002');
         hint.style.display = '';
@@ -1592,8 +1642,37 @@ function factoryReset() {
 <div id="firstRunOverlay" style="display:none;position:fixed;inset:0;
      background:rgba(13,17,23,0.93);z-index:9999;flex-direction:column;
      align-items:center;justify-content:center;color:#f0f0f5;text-align:center;padding:40px;">
-  <div style="font-size:56px;margin-bottom:20px;
-              animation:flutter 2.5s ease-in-out infinite;">🦋</div>
+  <div style="margin-bottom:20px;animation:flutter 2.5s ease-in-out infinite;">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="72" height="72" aria-hidden="true">
+      <defs>
+        <linearGradient id="fr-ul" x1="50" y1="54" x2="5"  y2="24" gradientUnits="userSpaceOnUse">
+          <stop offset="0%"   stop-color="#1a6fff"/>
+          <stop offset="100%" stop-color="#5ee7d4"/>
+        </linearGradient>
+        <linearGradient id="fr-ur" x1="50" y1="54" x2="95" y2="24" gradientUnits="userSpaceOnUse">
+          <stop offset="0%"   stop-color="#1a6fff"/>
+          <stop offset="100%" stop-color="#30d158"/>
+        </linearGradient>
+        <linearGradient id="fr-ll" x1="50" y1="60" x2="22" y2="88" gradientUnits="userSpaceOnUse">
+          <stop offset="0%"   stop-color="#005ec0"/>
+          <stop offset="100%" stop-color="#34c759"/>
+        </linearGradient>
+        <linearGradient id="fr-lr" x1="50" y1="60" x2="78" y2="88" gradientUnits="userSpaceOnUse">
+          <stop offset="0%"   stop-color="#005ec0"/>
+          <stop offset="100%" stop-color="#5ee7d4"/>
+        </linearGradient>
+      </defs>
+      <path d="M 50,48 C 40,25 12,12 5,26 C 1,40 14,56 50,60 Z"   fill="url(#fr-ul)"/>
+      <path d="M 50,48 C 60,25 88,12 95,26 C 99,40 86,56 50,60 Z"  fill="url(#fr-ur)"/>
+      <path d="M 50,60 C 38,64 20,72 22,84 C 24,94 40,92 50,66 Z"  fill="url(#fr-ll)"/>
+      <path d="M 50,60 C 62,64 80,72 78,84 C 76,94 60,92 50,66 Z"  fill="url(#fr-lr)"/>
+      <ellipse cx="50" cy="54" rx="3" ry="22" fill="#0d1229"/>
+      <path d="M 49,32 Q 38,17 33,9" stroke="#0d1229" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+      <circle cx="33" cy="9" r="1.8" fill="#1a6fff"/>
+      <path d="M 51,32 Q 62,17 67,9" stroke="#0d1229" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+      <circle cx="67" cy="9" r="1.8" fill="#30d158"/>
+    </svg>
+  </div>
   <div style="font-size:1.25rem;font-weight:600;margin-bottom:8px;">
     Building your first forecast…</div>
   <div style="font-size:0.88rem;opacity:0.6;margin-bottom:28px;">
