@@ -547,6 +547,13 @@ function executeAiClearData() {
       <div class="field-hint" style="margin-top:6px;">
         A Chrome window will open — log in to Monarch when prompted. Closes automatically when done (~30–60 seconds).
       </div>
+      <div id="browserDownloadNotice" style="display:none;margin-top:6px;padding:9px 12px;
+           background:rgba(10,132,255,0.08);border:1px solid rgba(10,132,255,0.25);
+           border-radius:8px;font-size:0.83rem;color:var(--text-secondary);line-height:1.5;">
+        <span style="color:#0a84ff;font-weight:600;">⏳ Downloading Chrome (~250 MB)…</span><br>
+        The browser needed for Monarch is downloading in the background.
+        The button will unlock automatically when the download finishes.
+      </div>
       <div id="accountsStatus" class="info-box" style="margin-top:6px;display:none;"></div>
     </div>
   </div>
@@ -1321,6 +1328,47 @@ function populateAccountSelect(accounts) {
 
 // On load: show calendar help for the current service, and silently try to populate
 // the account select from the 24-hour cache (fast path).
+// ── Browser readiness check ───────────────────────────────────────────────────
+// Disable 'Connect to Monarch' until Playwright's Chromium is fully downloaded.
+// Only relevant on first launch of the bundled app; resolves in ~30-60s.
+(function() {
+  var btn = document.getElementById('loadAccountsBtn');
+  var notice = document.getElementById('browserDownloadNotice');
+  if (!btn) return;
+
+  function _unlockBtn() {
+    btn.disabled = false;
+    btn.style.opacity = '';
+    btn.style.cursor = '';
+    btn.title = '';
+    if (notice) notice.style.display = 'none';
+  }
+
+  function _checkBrowser() {
+    fetch('/api/browser-status')
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.ready) {
+          _unlockBtn();
+        } else {
+          // Not ready — show notice, lock button, poll again in 3s
+          btn.disabled = true;
+          btn.style.opacity = '0.45';
+          btn.style.cursor = 'default';
+          btn.title = 'Waiting for Chrome download to finish…';
+          if (notice) notice.style.display = 'block';
+          setTimeout(_checkBrowser, 3000);
+        }
+      })
+      .catch(function() {
+        // On error assume ready (running from source, or network blip)
+        _unlockBtn();
+      });
+  }
+
+  _checkBrowser();
+})();
+
 document.addEventListener('DOMContentLoaded', function() {
   updateAiProviderUI();
   updateCalendarHelp();

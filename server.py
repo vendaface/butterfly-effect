@@ -924,6 +924,31 @@ def api_ai_analysis_status():
     })
 
 
+# ── Browser readiness ─────────────────────────────────────────────────────────
+
+@app.route("/api/browser-status")
+def api_browser_status():
+    """Return whether the Playwright Chromium browser is ready to use.
+
+    When launched via the bundled .app, main.py downloads Chromium in a
+    background thread before server.py starts. This endpoint lets the
+    frontend poll until the download is complete before enabling the
+    'Connect to Monarch' button.
+
+    When running from source (run.sh), Chromium is installed before Flask
+    starts, so the browser is always ready by the time this is called.
+    """
+    # main.py sets _browser_ready on the module after download completes.
+    # Import it at call time so we always read the current value.
+    try:
+        import main as _main
+        ready = bool(_main._browser_ready)
+    except (ImportError, AttributeError):
+        # Running from source (not bundled) — Playwright is always pre-installed
+        ready = True
+    return jsonify({"ready": ready})
+
+
 # ── Server management ──────────────────────────────────────────────────────────
 
 @app.route("/api/ping")
